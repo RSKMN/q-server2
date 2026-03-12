@@ -1,0 +1,236 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://research-lab.org/schemas/protein.schema.json",
+  "title": "Protein",
+  "description": "Standard schema for protein data in the research lab",
+  "type": "object",
+  "required": [
+    "protein_id",
+    "sequence",
+    "created_at"
+  ],
+  "properties": {
+    "protein_id": {
+      "type": "string",
+      "description": "Unique identifier for the protein",
+      "pattern": "^PROT-[A-Z0-9]{8,16}$",
+      "example": "PROT-XYZ98765"
+    },
+    "sequence": {
+      "type": "string",
+      "description": "Amino acid sequence in one-letter code",
+      "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$",
+      "minLength": 1,
+      "maxLength": 50000,
+      "example": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRE"
+    },
+    "structure_source": {
+      "type": "string",
+      "description": "Source of the protein structure",
+      "enum": ["experimental", "predicted", "homology_model", "ab_initio", "unknown"],
+      "default": "unknown",
+      "example": "experimental"
+    },
+    "pdb_reference": {
+      "type": ["string", "null"],
+      "description": "PDB (Protein Data Bank) accession code if available",
+      "pattern": "^[0-9][A-Z0-9]{3}$",
+      "example": "1ABC",
+      "default": null
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the record was created (ISO 8601 format)",
+      "example": "2026-03-02T10:30:00Z"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the protein",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Common name of the protein"
+        },
+        "organism": {
+          "type": "string",
+          "description": "Organism from which the protein originates",
+          "example": "Homo sapiens"
+        },
+        "taxonomy_id": {
+          "type": "integer",
+          "description": "NCBI Taxonomy ID",
+          "example": 9606
+        },
+        "uniprot_id": {
+          "type": "string",
+          "description": "UniProt accession number",
+          "pattern": "^[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}$",
+          "example": "P12345"
+        },
+        "gene_name": {
+          "type": "string",
+          "description": "Gene name associated with the protein"
+        },
+        "molecular_weight": {
+          "type": "number",
+          "description": "Molecular weight in Daltons (Da)",
+          "minimum": 0
+        },
+        "length": {
+          "type": "integer",
+          "description": "Number of amino acids in the sequence",
+          "minimum": 1
+        },
+        "isoelectric_point": {
+          "type": "number",
+          "description": "Isoelectric point (pI)",
+          "minimum": 0,
+          "maximum": 14
+        },
+        "function": {
+          "type": "string",
+          "description": "Functional annotation of the protein"
+        },
+        "domains": {
+          "type": "array",
+          "description": "Protein domains present in the sequence",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Domain name"
+              },
+              "start": {
+                "type": "integer",
+                "description": "Start position (1-based)",
+                "minimum": 1
+              },
+              "end": {
+                "type": "integer",
+                "description": "End position (1-based)",
+                "minimum": 1
+              },
+              "database": {
+                "type": "string",
+                "description": "Domain database (e.g., Pfam, InterPro)",
+                "example": "Pfam"
+              },
+              "accession": {
+                "type": "string",
+                "description": "Domain accession identifier"
+              }
+            },
+            "required": ["name", "start", "end"]
+          },
+          "default": []
+        },
+        "secondary_structure": {
+          "type": "object",
+          "description": "Secondary structure content percentages",
+          "properties": {
+            "helix_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "sheet_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "coil_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "expression_system": {
+          "type": "string",
+          "description": "Expression system used for protein production",
+          "example": "E. coli"
+        },
+        "resolution": {
+          "type": "number",
+          "description": "Resolution of experimental structure in Angstroms (Å)",
+          "minimum": 0,
+          "example": 2.5
+        },
+        "structure_method": {
+          "type": "string",
+          "enum": ["X-RAY DIFFRACTION", "NMR", "CRYO-EM", "ELECTRON MICROSCOPY", "PREDICTED", "OTHER"],
+          "description": "Method used to determine structure"
+        },
+        "cofactors": {
+          "type": "array",
+          "description": "Cofactors or ligands associated with the protein",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mutations": {
+          "type": "array",
+          "description": "Mutations present in this variant",
+          "items": {
+            "type": "object",
+            "properties": {
+              "position": {
+                "type": "integer",
+                "description": "Position of mutation (1-based)",
+                "minimum": 1
+              },
+              "wild_type": {
+                "type": "string",
+                "pattern": "^[ACDEFGHIKLMNPQRSTVWY]$",
+                "description": "Wild-type amino acid"
+              },
+              "mutant": {
+                "type": "string",
+                "pattern": "^[ACDEFGHIKLMNPQRSTVWY]$",
+                "description": "Mutant amino acid"
+              },
+              "notation": {
+                "type": "string",
+                "description": "Standard mutation notation (e.g., A123V)"
+              }
+            },
+            "required": ["position", "wild_type", "mutant"]
+          }
+        },
+        "external_references": {
+          "type": "object",
+          "description": "External database references",
+          "properties": {
+            "pdb_ids": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "uniprot_ids": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "genbank_ids": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "pubmed_ids": {
+              "type": "array",
+              "items": {"type": "integer"}
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "User-defined tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "default": {}
+    }
+  },
+  "additionalProperties": false
+}

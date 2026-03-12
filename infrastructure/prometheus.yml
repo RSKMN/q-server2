@@ -1,0 +1,64 @@
+# P3 Research Lab - Prometheus Configuration
+# ==========================================
+# Scrape configurations for monitoring the research lab infrastructure
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'p3-research-lab'
+    environment: 'development'
+
+# Scrape configs
+scrape_configs:
+  # ============================================
+  # Prometheus itself
+  # ============================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ============================================
+  # REST API metrics
+  # ============================================
+  - job_name: 'p3-api'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # ============================================
+  # Database metrics (PostgreSQL exporter)
+  # ============================================
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['localhost:9187']
+    scrape_interval: 30s
+
+  # ============================================
+  # Redis metrics
+  # ============================================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['localhost:6379']
+    scrape_interval: 30s
+
+  # ============================================
+  # Node exporter (system metrics)
+  # ============================================
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+    scrape_interval: 30s
+
+# Alert rules
+rule_files:
+  # - '/etc/prometheus/alert.rules.yml'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - 'localhost:9093'

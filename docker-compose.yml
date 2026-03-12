@@ -1,0 +1,193 @@
+# P3 Research Lab - Docker Compose Configuration
+# ===============================================
+# Local development environment with all services
+
+services:
+  # ============================================
+  # DATABASE SERVICES
+  # ============================================
+  
+  postgres:
+    image: postgres:16-alpine
+    container_name: p3-postgres
+    environment:
+      POSTGRES_DB: research_lab
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p3-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: p3-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - p3-network
+    restart: unless-stopped
+
+  # ============================================
+  # APPLICATION SERVICES
+  # ============================================
+  
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: p3-api
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - P3_ENVIRONMENT=development
+      - P3_POSTGRES_HOST=postgres
+      - P3_POSTGRES_PORT=5432
+      - P3_POSTGRES_DB=research_lab
+      - P3_POSTGRES_USER=postgres
+      - P3_POSTGRES_PASSWORD=postgres
+      - P3_REDIS_HOST=redis
+      - P3_REDIS_PORT=6379
+      - P3_MILVUS_HOST=milvus
+      - P3_MILVUS_PORT=19530
+      - P3_LOG_LEVEL=INFO
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - p3-network
+    restart: unless-stopped
+
+  # ============================================
+  # MONITORING & OBSERVABILITY
+  # ============================================
+  
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: p3-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./infrastructure/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - p3-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: p3-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - p3-network
+    restart: unless-stopped
+
+  milvus:
+    image: milvusdb/milvus:v2.3.9
+    container_name: p3-milvus
+    command: ["milvus", "run", "standalone"]
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    environment:
+      ETCD_USE_EMBED: "true"
+      COMMON_STORAGETYPE: "local"
+      MINIO_USE_EMBED: "true"
+    volumes:
+      - milvus_data:/var/lib/milvus
+    networks:
+      - p3-network
+    restart: unless-stopped
+
+  # ============================================
+  # DEVELOPMENT TOOLS
+  # ============================================
+  
+
+## REMOVE JUPYTER SERVICE FOR PRODUCTION DEPLOYMENT
+  # jupyter:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: p3-jupyter
+  #   command: jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token=''
+  #   environment:
+  #     - P3_ENVIRONMENT=development
+  #     - P3_POSTGRES_HOST=postgres
+  #     - JUPYTER_ENABLE_LAB=yes
+  #   volumes:
+  #     - .:/app
+  #     - ./data:/app/data
+  #     - ./notebooks:/app/notebooks
+  #   ports:
+  #     - "8888:8888"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   networks:
+  #     - p3-network
+  #   restart: unless-stopped
+
+# ============================================
+# VOLUMES
+# ============================================
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  milvus_data:
+    driver: local
+
+# ============================================
+# NETWORKS
+# ============================================
+
+networks:
+  p3-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+

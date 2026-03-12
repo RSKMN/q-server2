@@ -1,0 +1,203 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://research-lab.org/schemas/molecule.schema.json",
+  "title": "Molecule",
+  "description": "Standard schema for molecular data in the research lab",
+  "type": "object",
+  "required": [
+    "molecule_id",
+    "smiles",
+    "source_dataset",
+    "created_at"
+  ],
+  "properties": {
+    "molecule_id": {
+      "type": "string",
+      "description": "Unique identifier for the molecule",
+      "pattern": "^MOL-[A-Z0-9]{8,16}$",
+      "example": "MOL-ABC12345"
+    },
+    "smiles": {
+      "type": "string",
+      "description": "SMILES (Simplified Molecular Input Line Entry System) representation",
+      "minLength": 1,
+      "maxLength": 2000,
+      "example": "CC(=O)OC1=CC=CC=C1C(=O)O"
+    },
+    "atom_features": {
+      "type": "array",
+      "description": "Array of atom-level features for each atom in the molecule",
+      "items": {
+        "type": "object",
+        "required": ["atom_index", "element", "formal_charge"],
+        "properties": {
+          "atom_index": {
+            "type": "integer",
+            "description": "Zero-based index of the atom",
+            "minimum": 0
+          },
+          "element": {
+            "type": "string",
+            "description": "Chemical element symbol",
+            "pattern": "^[A-Z][a-z]?$",
+            "example": "C"
+          },
+          "formal_charge": {
+            "type": "integer",
+            "description": "Formal charge of the atom",
+            "minimum": -4,
+            "maximum": 4
+          },
+          "hybridization": {
+            "type": "string",
+            "enum": ["SP", "SP2", "SP3", "SP3D", "SP3D2"],
+            "description": "Hybridization state of the atom"
+          },
+          "is_aromatic": {
+            "type": "boolean",
+            "description": "Whether the atom is part of an aromatic system"
+          },
+          "num_hydrogen": {
+            "type": "integer",
+            "description": "Number of hydrogen atoms attached",
+            "minimum": 0
+          },
+          "chirality": {
+            "type": "string",
+            "enum": ["R", "S", "NONE"],
+            "description": "Chirality of the atom"
+          }
+        }
+      },
+      "default": []
+    },
+    "bond_features": {
+      "type": "array",
+      "description": "Array of bond-level features for each bond in the molecule",
+      "items": {
+        "type": "object",
+        "required": ["bond_index", "atom_i", "atom_j", "bond_type"],
+        "properties": {
+          "bond_index": {
+            "type": "integer",
+            "description": "Zero-based index of the bond",
+            "minimum": 0
+          },
+          "atom_i": {
+            "type": "integer",
+            "description": "Index of the first atom in the bond",
+            "minimum": 0
+          },
+          "atom_j": {
+            "type": "integer",
+            "description": "Index of the second atom in the bond",
+            "minimum": 0
+          },
+          "bond_type": {
+            "type": "string",
+            "enum": ["SINGLE", "DOUBLE", "TRIPLE", "AROMATIC"],
+            "description": "Type of chemical bond"
+          },
+          "is_conjugated": {
+            "type": "boolean",
+            "description": "Whether the bond is part of a conjugated system"
+          },
+          "is_in_ring": {
+            "type": "boolean",
+            "description": "Whether the bond is part of a ring structure"
+          },
+          "stereochemistry": {
+            "type": "string",
+            "enum": ["E", "Z", "CIS", "TRANS", "NONE"],
+            "description": "Stereochemistry of the bond"
+          }
+        }
+      },
+      "default": []
+    },
+    "source_dataset": {
+      "type": "string",
+      "description": "Source dataset from which the molecule was obtained",
+      "enum": ["zinc", "chembl", "pdbbind", "drugbank", "generated", "other"],
+      "example": "chembl"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the record was created (ISO 8601 format)",
+      "example": "2026-03-02T10:30:00Z"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the molecule",
+      "properties": {
+        "molecular_weight": {
+          "type": "number",
+          "description": "Molecular weight in g/mol",
+          "minimum": 0
+        },
+        "logp": {
+          "type": "number",
+          "description": "Partition coefficient (lipophilicity)"
+        },
+        "hbd": {
+          "type": "integer",
+          "description": "Number of hydrogen bond donors",
+          "minimum": 0
+        },
+        "hba": {
+          "type": "integer",
+          "description": "Number of hydrogen bond acceptors",
+          "minimum": 0
+        },
+        "tpsa": {
+          "type": "number",
+          "description": "Topological polar surface area (Ų)",
+          "minimum": 0
+        },
+        "num_rotatable_bonds": {
+          "type": "integer",
+          "description": "Number of rotatable bonds",
+          "minimum": 0
+        },
+        "num_aromatic_rings": {
+          "type": "integer",
+          "description": "Number of aromatic rings",
+          "minimum": 0
+        },
+        "drug_like": {
+          "type": "boolean",
+          "description": "Whether the molecule passes Lipinski's rule of five"
+        },
+        "inchi": {
+          "type": "string",
+          "description": "InChI (International Chemical Identifier)"
+        },
+        "inchi_key": {
+          "type": "string",
+          "description": "InChI Key (hashed InChI)"
+        },
+        "external_id": {
+          "type": "string",
+          "description": "External identifier from source database"
+        },
+        "references": {
+          "type": "array",
+          "description": "Literature or database references",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "User-defined tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "default": {}
+    }
+  },
+  "additionalProperties": false
+}

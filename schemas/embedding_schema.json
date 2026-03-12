@@ -1,0 +1,260 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://research-lab.org/schemas/embedding.schema.json",
+  "title": "Embedding",
+  "description": "Standard schema for molecular or protein embeddings in the research lab",
+  "type": "object",
+  "required": [
+    "embedding_id",
+    "source_id",
+    "model_version",
+    "vector_dimension",
+    "storage_location",
+    "created_at"
+  ],
+  "properties": {
+    "embedding_id": {
+      "type": "string",
+      "description": "Unique identifier for the embedding",
+      "pattern": "^EMB-[A-Z0-9]{8,16}$",
+      "example": "EMB-ABC12345XYZ"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Identifier of the source molecule or protein (e.g., MOL-* or PROT-*)",
+      "pattern": "^(MOL|PROT)-[A-Z0-9]{8,16}$",
+      "example": "MOL-ABC12345"
+    },
+    "source_type": {
+      "type": "string",
+      "description": "Type of the source entity",
+      "enum": ["molecule", "protein", "complex", "reaction", "other"],
+      "default": "molecule"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "Version identifier of the model used to generate the embedding",
+      "pattern": "^[a-zA-Z0-9._-]+@v[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "example": "molbert@v1.2.0"
+    },
+    "vector_dimension": {
+      "type": "integer",
+      "description": "Dimensionality of the embedding vector",
+      "minimum": 1,
+      "maximum": 10000,
+      "example": 768
+    },
+    "storage_location": {
+      "type": "string",
+      "description": "Path or URI to the stored embedding vector file",
+      "format": "uri-reference",
+      "example": "s3://research-lab/embeddings/2026/03/EMB-ABC12345XYZ.npy"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the embedding was created (ISO 8601 format)",
+      "example": "2026-03-02T10:30:00Z"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the embedding",
+      "properties": {
+        "model_name": {
+          "type": "string",
+          "description": "Name of the model architecture",
+          "example": "MolBERT"
+        },
+        "model_type": {
+          "type": "string",
+          "enum": ["transformer", "gnn", "cnn", "rnn", "hybrid", "other"],
+          "description": "Type of model architecture used"
+        },
+        "framework": {
+          "type": "string",
+          "description": "ML framework used",
+          "enum": ["pytorch", "tensorflow", "jax", "scikit-learn", "other"],
+          "example": "pytorch"
+        },
+        "checkpoint_path": {
+          "type": "string",
+          "description": "Path to the model checkpoint used for inference"
+        },
+        "preprocessing": {
+          "type": "object",
+          "description": "Preprocessing steps applied before embedding",
+          "properties": {
+            "normalization": {
+              "type": "string",
+              "enum": ["standard", "minmax", "l2", "none"],
+              "description": "Type of normalization applied"
+            },
+            "tokenization": {
+              "type": "string",
+              "description": "Tokenization method used (for sequence-based models)"
+            },
+            "augmentation": {
+              "type": "boolean",
+              "description": "Whether data augmentation was applied"
+            }
+          }
+        },
+        "embedding_layer": {
+          "type": "string",
+          "description": "Specific layer from which embeddings were extracted",
+          "example": "layer_12"
+        },
+        "pooling_strategy": {
+          "type": "string",
+          "enum": ["mean", "max", "cls", "sum", "attention", "none"],
+          "description": "Pooling strategy used to aggregate token embeddings",
+          "default": "mean"
+        },
+        "computation_time": {
+          "type": "number",
+          "description": "Time taken to compute the embedding in seconds",
+          "minimum": 0
+        },
+        "gpu_used": {
+          "type": "boolean",
+          "description": "Whether GPU was used for computation"
+        },
+        "batch_size": {
+          "type": "integer",
+          "description": "Batch size used during inference",
+          "minimum": 1
+        },
+        "confidence_score": {
+          "type": "number",
+          "description": "Confidence or quality score for the embedding",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "vector_norm": {
+          "type": "number",
+          "description": "L2 norm of the embedding vector",
+          "minimum": 0
+        },
+        "format": {
+          "type": "string",
+          "enum": ["npy", "npz", "h5", "parquet", "json", "binary"],
+          "description": "File format of the stored embedding",
+          "default": "npy"
+        },
+        "compression": {
+          "type": "string",
+          "enum": ["none", "gzip", "lz4", "zstd"],
+          "description": "Compression applied to the stored file",
+          "default": "none"
+        },
+        "dtype": {
+          "type": "string",
+          "enum": ["float16", "float32", "float64", "int8", "int16"],
+          "description": "Data type of the embedding values",
+          "default": "float32"
+        },
+        "training_dataset": {
+          "type": "string",
+          "description": "Dataset on which the model was trained"
+        },
+        "fine_tuned": {
+          "type": "boolean",
+          "description": "Whether the model was fine-tuned for specific task",
+          "default": false
+        },
+        "fine_tuning_task": {
+          "type": "string",
+          "description": "Task for which the model was fine-tuned"
+        },
+        "similarity_metric": {
+          "type": "string",
+          "enum": ["cosine", "euclidean", "manhattan", "dot_product"],
+          "description": "Recommended similarity metric for this embedding space",
+          "default": "cosine"
+        },
+        "dimensionality_reduction": {
+          "type": "object",
+          "description": "Dimensionality reduction applied post-embedding",
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": ["pca", "umap", "tsne", "autoencoder", "none"],
+              "default": "none"
+            },
+            "original_dimension": {
+              "type": "integer",
+              "description": "Dimension before reduction",
+              "minimum": 1
+            },
+            "variance_retained": {
+              "type": "number",
+              "description": "Variance retained after reduction (for PCA)",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "use_cases": {
+          "type": "array",
+          "description": "Intended use cases for this embedding",
+          "items": {
+            "type": "string",
+            "enum": [
+              "similarity_search",
+              "clustering",
+              "classification",
+              "regression",
+              "retrieval",
+              "visualization"
+            ]
+          }
+        },
+        "validation_metrics": {
+          "type": "object",
+          "description": "Validation metrics for embedding quality",
+          "properties": {
+            "reconstruction_error": {
+              "type": "number",
+              "minimum": 0
+            },
+            "downstream_accuracy": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "nearest_neighbor_recall": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "version_history": {
+          "type": "array",
+          "description": "History of embedding versions for this source",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {"type": "string"},
+              "created_at": {"type": "string", "format": "date-time"},
+              "changes": {"type": "string"}
+            }
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "User-defined tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional notes or comments"
+        }
+      },
+      "default": {}
+    }
+  },
+  "additionalProperties": false
+}
