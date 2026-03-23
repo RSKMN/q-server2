@@ -1,0 +1,37 @@
+{
+  "name": "scientific-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.20.6",
+    "@types/plotly.js": "^3.0.10",
+    "@types/react-plotly.js": "^2.6.4",
+    "3dmol": "^2.5.4",
+    "jquery": "^4.0.0",
+    "next": "14.2.18",
+    "plotly.js": "^3.4.0",
+    "plotly.js-basic-dist-min": "^3.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-plotly.js": "^2.6.0",
+    "recharts": "^2.13.3",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5"
+  }
+}

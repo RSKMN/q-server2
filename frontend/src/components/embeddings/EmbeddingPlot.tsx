@@ -1,0 +1,171 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import type { PlotParams } from "react-plotly.js";
+import type { EmbeddingPoint } from "@/types/api";
+
+type ColorMode = "dataset" | "qed";
+
+interface EmbeddingPlotProps {
+  data: EmbeddingPoint[];
+  colorMode: ColorMode;
+  onPointClick?: (point: EmbeddingPoint) => void;
+}
+
+const Plot = dynamic(() => import("react-plotly.js"), {
+  ssr: false,
+}) as React.ComponentType<PlotParams>;
+
+const DATASET_COLORS = ["#2563eb", "#0f766e", "#d97706", "#7c3aed", "#db2777", "#0ea5e9"];
+
+function getDatasetColorMap(datasets: string[]): Map<string, string> {
+  return new Map(
+    datasets.map((dataset, index) => [
+      dataset,
+      DATASET_COLORS[index % DATASET_COLORS.length],
+    ])
+  );
+}
+
+export default function EmbeddingPlot({
+  data,
+  colorMode,
+  onPointClick,
+}: EmbeddingPlotProps) {
+  const [hoveredPoint, setHoveredPoint] = useState<EmbeddingPoint | null>(null);
+
+  const pointById = useMemo(() => {
+    return new Map(data.map((point) => [point.molecule_id, point]));
+  }, [data]);
+
+  const traces = useMemo<PlotParams["data"]>(() => {
+    if (colorMode === "qed") {
+      return [
+        {
+          type: "scattergl",
+          mode: "markers",
+          name: "Molecules",
+          x: data.map((point) => point.x),
+          y: data.map((point) => point.y),
+          ids: data.map((point) => point.molecule_id),
+          customdata: data,
+          marker: {
+            size: 8,
+            opacity: 0.82,
+            color: data.map((point) => point.qed),
+            colorscale: "Viridis",
+            cmin: 0,
+            cmax: 1,
+            colorbar: {
+              title: {
+                text: "QED",
+              },
+              thickness: 12,
+            },
+          },
+          hovertemplate:
+            "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
+        },
+      ];
+    }
+
+    const datasets = Array.from(new Set(data.map((point) => point.dataset))).sort();
+    const colorMap = getDatasetColorMap(datasets);
+
+    return datasets.map((dataset) => {
+      const datasetPoints = data.filter((point) => point.dataset === dataset);
+      return {
+        type: "scattergl",
+        mode: "markers",
+        name: dataset,
+        x: datasetPoints.map((point) => point.x),
+        y: datasetPoints.map((point) => point.y),
+        ids: datasetPoints.map((point) => point.molecule_id),
+        customdata: datasetPoints,
+        marker: {
+          size: 8,
+          opacity: 0.78,
+          color: colorMap.get(dataset) ?? "#3b82f6",
+        },
+        hovertemplate:
+          "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
+      };
+    });
+  }, [colorMode, data]);
+
+  const layout = useMemo<Partial<Plotly.Layout>>(
+    () => ({
+      autosize: true,
+      paper_bgcolor: "#ffffff",
+      plot_bgcolor: "#ffffff",
+      margin: { t: 20, r: 20, b: 40, l: 48 },
+      xaxis: {
+        title: { text: "UMAP 1" },
+        showgrid: true,
+        gridcolor: "#e2e8f0",
+        zerolinecolor: "#cbd5e1",
+      },
+      yaxis: {
+        title: { text: "UMAP 2" },
+        showgrid: true,
+        gridcolor: "#e2e8f0",
+        zerolinecolor: "#cbd5e1",
+      },
+      hovermode: "closest",
+      dragmode: "pan",
+      showlegend: colorMode === "dataset",
+      legend: {
+        orientation: "h",
+        yanchor: "bottom",
+        y: 1.01,
+        xanchor: "right",
+        x: 1,
+      },
+    }),
+    [colorMode]
+  );
+
+  return (
+    <div className="h-full min-h-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="h-full min-h-[460px]">
+        <Plot
+          data={traces}
+          layout={layout}
+          useResizeHandler
+          style={{ width: "100%", height: "100%" }}
+          config={{ displaylogo: false, responsive: true }}
+          onHover={(event) => {
+            const point = (event.points?.[0]?.customdata as EmbeddingPoint | undefined) ?? null;
+            setHoveredPoint(point);
+          }}
+          onUnhover={() => setHoveredPoint(null)}
+          onClick={(event) => {
+            if (!onPointClick) return;
+            const clicked = event.points?.[0];
+            if (!clicked) return;
+
+            const direct = (clicked.customdata as EmbeddingPoint | undefined) ?? null;
+            const fallbackId =
+              typeof clicked.id === "string" ? clicked.id : String(clicked.id ?? "");
+
+            const target = direct ?? pointById.get(fallbackId) ?? null;
+            if (target) {
+              onPointClick(target);
+            }
+          }}
+        />
+      </div>
+
+      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        {hoveredPoint ? (
+          <span>
+            Hover: <strong>{hoveredPoint.molecule_id}</strong> | MW {hoveredPoint.mw.toFixed(1)} | QED {hoveredPoint.qed.toFixed(2)}
+          </span>
+        ) : (
+          <span>Hover a point to preview MW and QED. Click a point to load it in the molecule viewer.</span>
+        )}
+      </div>
+    </div>
+  );
+}
