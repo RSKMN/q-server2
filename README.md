@@ -94,6 +94,8 @@ Provides:
 
 ## 🚀 Quick Start
 
+For production-oriented setup steps, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ### Local Development
 
 ```bash
@@ -296,7 +298,7 @@ docker compose restart
 docker compose down -v
 ```
 
-**Container Network**: `p3-network` (172.28.0.0/16)
+**Container Network**: `p3-network` (Docker-managed subnet)
 - Services reference each other by DNS name (e.g., `postgres`, `milvus`, `redis`)
 
 **Service Ports**:
@@ -390,7 +392,7 @@ Typical pipeline performance on development hardware:
 docker compose ps milvus
 
 # Check logs for startup errors
-docker logs p3-milvus | tail -50
+docker compose logs milvus --tail 50
 
 # Restart and rebuild
 docker compose down -v milvus

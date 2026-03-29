@@ -38,3 +38,24 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Environment
+
+Create `frontend/.env.local` from `frontend/.env.example`.
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+## Integration Check
+
+1. Ensure backend is running on port `8000`.
+2. Open Similarity page and run a query (for example `CCO`).
+3. In browser Network tab, verify:
+- `OPTIONS /molecules/similar` returns `200`
+- `POST /molecules/similar` returns JSON
+
+## Windows Path Note
+
+On some Windows setups, webpack validation fails when the project path contains `!`.
+If that happens, run frontend from a path without `!`.
