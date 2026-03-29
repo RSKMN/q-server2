@@ -49,7 +49,7 @@ export default function EmbeddingPlot({
           x: data.map((point) => point.x),
           y: data.map((point) => point.y),
           ids: data.map((point) => point.molecule_id),
-          customdata: data,
+          customdata: data.map(d => [d.smiles, d.qed]),
           marker: {
             size: 8,
             opacity: 0.82,
@@ -65,7 +65,8 @@ export default function EmbeddingPlot({
             },
           },
           hovertemplate:
-            "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
+            "SMILES: %{customdata[0]}<br>" +
+            "QED: %{customdata[1]}<extra></extra>",
         },
       ];
     }

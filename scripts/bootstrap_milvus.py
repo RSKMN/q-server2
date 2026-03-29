@@ -3,16 +3,24 @@
 Usage:
   python scripts/bootstrap_milvus.py
   python scripts/bootstrap_milvus.py --seed-count 50
+    python scripts/bootstrap_milvus.py --uri https://<zilliz-endpoint> --token <token> --seed-count 100
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import sys
+from pathlib import Path
 from typing import Sequence
 
 import numpy as np
 
-from services.vector_store.milvus_client import MilvusVectorStore
+try:
+        from services.vector_store.milvus_client import MilvusVectorStore
+except ModuleNotFoundError:
+        sys.path.append(str(Path(__file__).resolve().parents[1]))
+        from services.vector_store.milvus_client import MilvusVectorStore
 
 
 def _build_seed_vectors(count: int, dim: int) -> Sequence[Sequence[float]]:
@@ -22,8 +30,17 @@ def _build_seed_vectors(count: int, dim: int) -> Sequence[Sequence[float]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Bootstrap Milvus collection")
-    parser.add_argument("--host", default="localhost", help="Milvus host")
-    parser.add_argument("--port", default="19530", help="Milvus port")
+    parser.add_argument("--uri", default=None, help="Milvus/Zilliz endpoint URI")
+    parser.add_argument(
+        "--token",
+        default=None,
+        help="Milvus/Zilliz auth token (if omitted, uses P3_MILVUS_TOKEN)",
+    )
+    parser.add_argument(
+        "--host",
+        default=None,
+        help="Legacy alias for --uri",
+    )
     parser.add_argument(
         "--collection",
         default="molecule_embeddings",
@@ -39,7 +56,22 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    store = MilvusVectorStore(host=args.host, port=args.port)
+    resolved_uri = args.uri or args.host or os.getenv("P3_MILVUS_HOST")
+    resolved_token = args.token or os.getenv("P3_MILVUS_TOKEN")
+
+    if not resolved_uri:
+        raise SystemExit(
+            "Missing Milvus URI. Provide --uri (or --host) or set P3_MILVUS_HOST."
+        )
+    if not resolved_token:
+        raise SystemExit(
+            "Missing Milvus token. Provide --token or set P3_MILVUS_TOKEN."
+        )
+
+    os.environ["P3_MILVUS_HOST"] = resolved_uri
+    os.environ["P3_MILVUS_TOKEN"] = resolved_token
+
+    store = MilvusVectorStore()
     store.connect()
     store.create_collection(args.collection, args.dimension)
     print(f"Collection ready: {args.collection}")
