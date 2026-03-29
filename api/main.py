@@ -29,13 +29,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://q-server2-cz4a77iuo-rskmn7734-gmailcoms-projects.vercel.app",
+        "https://q-server2.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.options("/{full_path:path}")
 async def options_handler(full_path: str):
