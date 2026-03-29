@@ -7,9 +7,11 @@
 import type {
   Dataset,
   DatasetsResponse,
+  Distribution,
   EmbeddingMapResponse,
   MoleculeDetails,
   MoleculesListResponse,
+  SimilarityResult,
   SimilaritySearchResponse,
   StatsResponse,
 } from "@/types/api";
@@ -19,6 +21,13 @@ const API_BASE_URL =
   (typeof process !== "undefined" &&
     process.env?.NEXT_PUBLIC_API_URL) ||
   "http://localhost:8000";
+
+const DEFAULT_DATASETS: Dataset[] = ["ZINC250k", "ChEMBL", "PDBbind", "DrugBank"];
+
+const EMPTY_DISTRIBUTION: Distribution = {
+  bins: [],
+  counts: [],
+};
 
 /** Custom error for API failures */
 export class ApiError extends Error {
@@ -92,15 +101,30 @@ async function apiFetch<T>(
 
 /** Fetch available datasets (e.g. ZINC250k, ChEMBL, PDBbind, DrugBank) */
 export async function getDatasets(): Promise<Dataset[]> {
-  const data = await apiFetch<DatasetsResponse>("/datasets");
-  return Array.isArray(data) ? [...data] : [];
+  // Current backend does not expose GET /datasets yet.
+  // Keep UI operational with a stable dataset list.
+  return [...DEFAULT_DATASETS];
 }
 
 /** Fetch dataset statistics, optionally filtered by dataset */
 export async function getStats(dataset?: string): Promise<StatsResponse> {
-  return apiFetch<StatsResponse>("/stats", {
-    params: dataset ? { dataset } : undefined,
-  });
+  // Current backend does not expose GET /stats yet.
+  // Return an empty but valid shape so dashboard can render.
+  return {
+    dataset,
+    summary: {
+      molecule_count: 0,
+      avg_mw: 0,
+      avg_logp: 0,
+      avg_qed: 0,
+    },
+    distributions: {
+      mw: EMPTY_DISTRIBUTION,
+      logp: EMPTY_DISTRIBUTION,
+      tpsa: EMPTY_DISTRIBUTION,
+      qed: EMPTY_DISTRIBUTION,
+    },
+  };
 }
 
 /** Fetch molecules with optional filters and pagination */
@@ -157,16 +181,22 @@ export async function searchSimilar(
   smiles: string,
   topK: number = 10
 ): Promise<SimilaritySearchResponse> {
-  const data = await apiFetch<
-    SimilaritySearchResponse | { neighbors: SimilaritySearchResponse["neighbors"] }
-  >("/embedding/search", {
+  const data = await apiFetch<{
+    query_smiles: string;
+    results: Array<{ molecule_id: string; score: number }>;
+  }>("/molecules/similar", {
     method: "POST",
     body: JSON.stringify({ smiles, top_k: topK }),
   });
-  if ("neighbors" in data) {
-    return { neighbors: data.neighbors };
-  }
-  return data as SimilaritySearchResponse;
+
+  const neighbors: SimilarityResult[] = (data.results ?? []).map((item) => ({
+    molecule_id: item.molecule_id,
+    similarity: item.score,
+    // The current backend response does not include these fields.
+    smiles: "",
+  }));
+
+  return { neighbors };
 }
 
 /** Fetch UMAP embedding points for chemical space visualization */
@@ -174,8 +204,9 @@ export async function getEmbeddingMap(
   dataset?: string,
   limit: number = 5000
 ): Promise<EmbeddingMapResponse> {
-  const data = await apiFetch<EmbeddingMapResponse>("/embedding/umap", {
-    params: { dataset, limit },
-  });
-  return Array.isArray(data) ? data : [];
+  // Current backend does not expose GET /embedding/umap yet.
+  // Return an empty array so the page renders without runtime errors.
+  void dataset;
+  void limit;
+  return [];
 }

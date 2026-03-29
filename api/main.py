@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from api.routers import health, molecules, embeddings, experiments
 from services.database.postgres_client import get_engine
 from services.database import models as db_models
@@ -15,6 +16,14 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Research Lab API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Include routers
 app.include_router(health.router, tags=["health"])
