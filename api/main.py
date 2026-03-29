@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.routers import health, molecules, embeddings, experiments
 from services.database.postgres_client import get_engine
 from services.database import models as db_models
+from fastapi.responses import Response
 
 
 @asynccontextmanager
@@ -35,8 +36,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-async def preflight_handler(request: Request):
-    return {}
+
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
+
 
 # Include routers
 app.include_router(health.router, tags=["health"])
