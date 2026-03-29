@@ -7,6 +7,7 @@ molecule embeddings and running similarity search.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict, List, Sequence
 
 from pymilvus import (
@@ -40,21 +41,32 @@ class MilvusVectorStore:
         """Connect to a Milvus server."""
         if self._connected:
             logger.debug(
-                "Milvus already connected (alias=%s, host=%s, port=%s)",
+                "Milvus already connected (alias=%s)",
                 self.alias,
-                self.host,
-                self.port,
             )
             return
 
+        uri = os.getenv("P3_MILVUS_HOST")
+        token = os.getenv("P3_MILVUS_TOKEN")
+
+        if not uri or not token:
+            missing = []
+            if not uri:
+                missing.append("P3_MILVUS_HOST")
+            if not token:
+                missing.append("P3_MILVUS_TOKEN")
+            raise ValueError(
+                "Missing required Milvus environment variable(s) for Zilliz Cloud: "
+                + ", ".join(missing)
+            )
+
         logger.info(
-            "Connecting to Milvus server at %s:%s (alias=%s)",
-            self.host,
-            self.port,
+            "Connecting to Milvus server using uri '%s' (alias=%s)",
+            uri,
             self.alias,
         )
         try:
-            connections.connect(alias=self.alias, host=self.host, port=self.port)
+            connections.connect(alias=self.alias, uri=uri, token=token)
             self._connected = True
             logger.info("Connected to Milvus successfully")
         except Exception:
