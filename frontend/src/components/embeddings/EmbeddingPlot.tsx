@@ -33,11 +33,37 @@ export default function EmbeddingPlot({
   colorMode,
   onPointClick,
 }: EmbeddingPlotProps) {
+  type EmbeddingPointWithSmiles = EmbeddingPoint & { smiles?: string };
   const [hoveredPoint, setHoveredPoint] = useState<EmbeddingPoint | null>(null);
 
-  const pointById = useMemo(() => {
-    return new Map(data.map((point) => [point.molecule_id, point]));
-  }, [data]);
+  const resolvePointFromCustomdata = (customdata: unknown): EmbeddingPoint | null => {
+    if (!Array.isArray(customdata) || customdata.length < 2) {
+      return null;
+    }
+
+    const smilesDatum = customdata[0];
+    const qedDatum = customdata[1];
+
+    const smiles = typeof smilesDatum === "string" ? smilesDatum : "";
+    const qed =
+      typeof qedDatum === "number"
+        ? qedDatum
+        : typeof qedDatum === "string"
+          ? Number(qedDatum)
+          : Number.NaN;
+
+    if (Number.isNaN(qed)) {
+      return null;
+    }
+
+    return (
+      data.find(
+        (point) =>
+          ((point as EmbeddingPointWithSmiles).smiles ?? "") === smiles &&
+          point.qed === qed
+      ) ?? null
+    );
+  };
 
   const traces = useMemo<PlotParams["data"]>(() => {
     if (colorMode === "qed") {
@@ -49,7 +75,10 @@ export default function EmbeddingPlot({
           x: data.map((point) => point.x),
           y: data.map((point) => point.y),
           ids: data.map((point) => point.molecule_id),
-          customdata: data.map(d => [d.smiles, d.qed]),
+          customdata: data.map((d) => [
+            (d as EmbeddingPointWithSmiles).smiles ?? "",
+            d.qed,
+          ]),
           marker: {
             size: 8,
             opacity: 0.82,
@@ -64,9 +93,7 @@ export default function EmbeddingPlot({
               thickness: 12,
             },
           },
-          hovertemplate:
-            "SMILES: %{customdata[0]}<br>" +
-            "QED: %{customdata[1]}<extra></extra>",
+          hovertemplate: "SMILES: %{customdata[0]}<br>QED: %{customdata[1]}<extra></extra>",
         },
       ];
     }
@@ -83,14 +110,16 @@ export default function EmbeddingPlot({
         x: datasetPoints.map((point) => point.x),
         y: datasetPoints.map((point) => point.y),
         ids: datasetPoints.map((point) => point.molecule_id),
-        customdata: datasetPoints,
+        customdata: datasetPoints.map((d) => [
+          (d as EmbeddingPointWithSmiles).smiles ?? "",
+          d.qed,
+        ]),
         marker: {
           size: 8,
           opacity: 0.78,
           color: colorMap.get(dataset) ?? "#3b82f6",
         },
-        hovertemplate:
-          "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
+        hovertemplate: "SMILES: %{customdata[0]}<br>QED: %{customdata[1]}<extra></extra>",
       };
     });
   }, [colorMode, data]);
@@ -137,7 +166,12 @@ export default function EmbeddingPlot({
           style={{ width: "100%", height: "100%" }}
           config={{ displaylogo: false, responsive: true }}
           onHover={(event) => {
-            const point = (event.points?.[0]?.customdata as EmbeddingPoint | undefined) ?? null;
+            const hovered = event.points?.[0];
+            if (!hovered) {
+              setHoveredPoint(null);
+              return;
+            }
+            const point = resolvePointFromCustomdata(hovered.customdata);
             setHoveredPoint(point);
           }}
           onUnhover={() => setHoveredPoint(null)}
@@ -146,11 +180,7 @@ export default function EmbeddingPlot({
             const clicked = event.points?.[0];
             if (!clicked) return;
 
-            const direct = (clicked.customdata as EmbeddingPoint | undefined) ?? null;
-            const fallbackId =
-              typeof clicked.id === "string" ? clicked.id : String(clicked.id ?? "");
-
-            const target = direct ?? pointById.get(fallbackId) ?? null;
+            const target = resolvePointFromCustomdata(clicked.customdata);
             if (target) {
               onPointClick(target);
             }
