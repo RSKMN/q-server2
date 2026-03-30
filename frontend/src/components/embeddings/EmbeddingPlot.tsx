@@ -34,6 +34,19 @@ export default function EmbeddingPlot({
   onPointClick,
 }: EmbeddingPlotProps) {
   type PlotCustomData = [string, string, number, number];
+  const parseCustomData = (value: unknown): PlotCustomData | undefined => {
+    if (!Array.isArray(value) || value.length < 4) return undefined;
+    const [id, dataset, qed, mw] = value;
+    if (
+      typeof id === "string" &&
+      typeof dataset === "string" &&
+      typeof qed === "number" &&
+      typeof mw === "number"
+    ) {
+      return [id, dataset, qed, mw];
+    }
+    return undefined;
+  };
 
   const [hoveredPoint, setHoveredPoint] = useState<EmbeddingPoint | null>(null);
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
@@ -148,8 +161,8 @@ export default function EmbeddingPlot({
           config={{ displaylogo: false, responsive: true }}
           onHover={(event) => {
             const hovered = event.points?.[0];
-            const customData = hovered?.customdata as PlotCustomData | undefined;
-            const hoverId = customData?.[0] ?? (typeof hovered?.id === "string" ? hovered.id : null);
+            const customData = parseCustomData(hovered?.customdata);
+            const hoverId = customData?.[0] ?? null;
             const point = hoverId ? pointById.get(hoverId) ?? null : null;
             setHoveredPoint(point);
             const rect = containerRef.current?.getBoundingClientRect();
@@ -171,11 +184,10 @@ export default function EmbeddingPlot({
             const clicked = event.points?.[0];
             if (!clicked) return;
 
-            const customData = clicked.customdata as PlotCustomData | undefined;
-            const fallbackId = typeof clicked.id === "string" ? clicked.id : String(clicked.id ?? "");
-            const targetId = customData?.[0] ?? fallbackId;
+            const customData = parseCustomData(clicked.customdata);
+            const targetId = customData?.[0] ?? null;
 
-            const target = pointById.get(targetId) ?? null;
+            const target = targetId ? pointById.get(targetId) ?? null : null;
             if (target) {
               onPointClick(target);
             }
