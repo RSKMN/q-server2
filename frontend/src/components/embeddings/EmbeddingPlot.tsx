@@ -33,6 +33,8 @@ export default function EmbeddingPlot({
   colorMode,
   onPointClick,
 }: EmbeddingPlotProps) {
+  type PlotCustomData = [string, string, number, number];
+
   const [hoveredPoint, setHoveredPoint] = useState<EmbeddingPoint | null>(null);
   const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +44,13 @@ export default function EmbeddingPlot({
   }, [data]);
 
   const traces = useMemo<PlotParams["data"]>(() => {
+    const toCustomData = (point: EmbeddingPoint): PlotCustomData => [
+      point.molecule_id,
+      point.dataset,
+      point.qed,
+      point.mw,
+    ];
+
     if (colorMode === "qed") {
       return [
         {
@@ -51,7 +60,7 @@ export default function EmbeddingPlot({
           x: data.map((point) => point.x),
           y: data.map((point) => point.y),
           ids: data.map((point) => point.molecule_id),
-          customdata: data,
+          customdata: data.map(toCustomData),
           marker: {
             size: 8,
             opacity: 0.82,
@@ -67,7 +76,7 @@ export default function EmbeddingPlot({
             },
           },
           hovertemplate:
-            "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
+            "<b>%{customdata[0]}</b><br>Dataset: %{customdata[1]}<br>QED: %{customdata[2]:.2f}<br>MW: %{customdata[3]:.1f}<extra></extra>",
         },
       ];
     }
@@ -84,14 +93,14 @@ export default function EmbeddingPlot({
         x: datasetPoints.map((point) => point.x),
         y: datasetPoints.map((point) => point.y),
         ids: datasetPoints.map((point) => point.molecule_id),
-        customdata: datasetPoints,
+        customdata: datasetPoints.map(toCustomData),
         marker: {
           size: 8,
           opacity: 0.78,
           color: colorMap.get(dataset) ?? "#3b82f6",
         },
         hovertemplate:
-          "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
+          "<b>%{customdata[0]}</b><br>Dataset: %{customdata[1]}<br>QED: %{customdata[2]:.2f}<br>MW: %{customdata[3]:.1f}<extra></extra>",
       };
     });
   }, [colorMode, data]);
@@ -138,7 +147,10 @@ export default function EmbeddingPlot({
           style={{ width: "100%", height: "100%" }}
           config={{ displaylogo: false, responsive: true }}
           onHover={(event) => {
-            const point = (event.points?.[0]?.customdata as EmbeddingPoint | undefined) ?? null;
+            const hovered = event.points?.[0];
+            const customData = hovered?.customdata as PlotCustomData | undefined;
+            const hoverId = customData?.[0] ?? (typeof hovered?.id === "string" ? hovered.id : null);
+            const point = hoverId ? pointById.get(hoverId) ?? null : null;
             setHoveredPoint(point);
             const rect = containerRef.current?.getBoundingClientRect();
             const clientX = event.event?.clientX ?? 0;
@@ -159,11 +171,11 @@ export default function EmbeddingPlot({
             const clicked = event.points?.[0];
             if (!clicked) return;
 
-            const direct = (clicked.customdata as EmbeddingPoint | undefined) ?? null;
-            const fallbackId =
-              typeof clicked.id === "string" ? clicked.id : String(clicked.id ?? "");
+            const customData = clicked.customdata as PlotCustomData | undefined;
+            const fallbackId = typeof clicked.id === "string" ? clicked.id : String(clicked.id ?? "");
+            const targetId = customData?.[0] ?? fallbackId;
 
-            const target = direct ?? pointById.get(fallbackId) ?? null;
+            const target = pointById.get(targetId) ?? null;
             if (target) {
               onPointClick(target);
             }
