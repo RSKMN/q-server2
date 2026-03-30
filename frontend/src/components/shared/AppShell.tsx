@@ -25,7 +25,7 @@ export default function AppShell({ children }: AppShellProps) {
         </div>
 
         {/* Main workspace - scrollable */}
-        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 dark:bg-slate-900">
+        <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50 transition-all duration-300 dark:bg-slate-900">
           <div className="min-h-full p-4 sm:p-6">{children}</div>
         </main>
 

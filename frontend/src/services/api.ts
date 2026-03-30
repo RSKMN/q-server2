@@ -5,12 +5,16 @@
  */
 
 import type {
+  CandidateProfilesResponse,
   Dataset,
   DatasetsResponse,
   Distribution,
   EmbeddingMapResponse,
   MoleculeDetails,
   MoleculesListResponse,
+  RankedCandidatesResponse,
+  ResultArtifactsResponse,
+  ResultsOverview,
   SimilarityResult,
   SimilaritySearchResponse,
   StatsResponse,
@@ -101,30 +105,38 @@ async function apiFetch<T>(
 
 /** Fetch available datasets (e.g. ZINC250k, ChEMBL, PDBbind, DrugBank) */
 export async function getDatasets(): Promise<Dataset[]> {
-  // Current backend does not expose GET /datasets yet.
-  // Keep UI operational with a stable dataset list.
-  return [...DEFAULT_DATASETS];
+  try {
+    const data = await apiFetch<DatasetsResponse>("/datasets");
+    return Array.isArray(data) && data.length ? [...data] : [...DEFAULT_DATASETS];
+  } catch {
+    // Keep UI operational when backend omits datasets endpoint.
+    return [...DEFAULT_DATASETS];
+  }
 }
 
 /** Fetch dataset statistics, optionally filtered by dataset */
 export async function getStats(dataset?: string): Promise<StatsResponse> {
-  // Current backend does not expose GET /stats yet.
-  // Return an empty but valid shape so dashboard can render.
-  return {
-    dataset,
-    summary: {
-      molecule_count: 0,
-      avg_mw: 0,
-      avg_logp: 0,
-      avg_qed: 0,
-    },
-    distributions: {
-      mw: EMPTY_DISTRIBUTION,
-      logp: EMPTY_DISTRIBUTION,
-      tpsa: EMPTY_DISTRIBUTION,
-      qed: EMPTY_DISTRIBUTION,
-    },
-  };
+  try {
+    return await apiFetch<StatsResponse>("/stats", {
+      params: dataset ? { dataset } : undefined,
+    });
+  } catch {
+    return {
+      dataset,
+      summary: {
+        molecule_count: 0,
+        avg_mw: 0,
+        avg_logp: 0,
+        avg_qed: 0,
+      },
+      distributions: {
+        mw: EMPTY_DISTRIBUTION,
+        logp: EMPTY_DISTRIBUTION,
+        tpsa: EMPTY_DISTRIBUTION,
+        qed: EMPTY_DISTRIBUTION,
+      },
+    };
+  }
 }
 
 /** Fetch molecules with optional filters and pagination */
@@ -181,22 +193,36 @@ export async function searchSimilar(
   smiles: string,
   topK: number = 10
 ): Promise<SimilaritySearchResponse> {
-  const data = await apiFetch<{
-    query_smiles: string;
-    results: Array<{ molecule_id: string; score: number }>;
-  }>("/molecules/similar", {
-    method: "POST",
-    body: JSON.stringify({ smiles, top_k: topK }),
-  });
+  try {
+    const data = await apiFetch<
+      SimilaritySearchResponse | { neighbors: SimilaritySearchResponse["neighbors"] }
+    >("/embedding/search", {
+      method: "POST",
+      body: JSON.stringify({ smiles, top_k: topK }),
+    });
 
-  const neighbors: SimilarityResult[] = (data.results ?? []).map((item) => ({
-    molecule_id: item.molecule_id,
-    similarity: item.score,
-    // The current backend response does not include these fields.
-    smiles: "",
-  }));
+    if ("neighbors" in data) {
+      return { neighbors: data.neighbors };
+    }
 
-  return { neighbors };
+    return data as SimilaritySearchResponse;
+  } catch {
+    const data = await apiFetch<{
+      query_smiles: string;
+      results: Array<{ molecule_id: string; score: number }>;
+    }>("/molecules/similar", {
+      method: "POST",
+      body: JSON.stringify({ smiles, top_k: topK }),
+    });
+
+    const neighbors: SimilarityResult[] = (data.results ?? []).map((item) => ({
+      molecule_id: item.molecule_id,
+      similarity: item.score,
+      smiles: "",
+    }));
+
+    return { neighbors };
+  }
 }
 
 /** Fetch UMAP embedding points for chemical space visualization */
@@ -204,9 +230,45 @@ export async function getEmbeddingMap(
   dataset?: string,
   limit: number = 5000
 ): Promise<EmbeddingMapResponse> {
-  // Current backend does not expose GET /embedding/umap yet.
-  // Return an empty array so the page renders without runtime errors.
-  void dataset;
-  void limit;
-  return [];
+  try {
+    const data = await apiFetch<EmbeddingMapResponse>("/embedding/umap", {
+      params: { dataset, limit },
+    });
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch aggregate project result counts + highlights for showcase view */
+export async function getResultsOverview(): Promise<ResultsOverview> {
+  return apiFetch<ResultsOverview>("/results/overview");
+}
+
+/** Fetch ranked candidate rows from existing or generated candidate file */
+export async function getRankedCandidates(
+  source: "existing" | "generated" = "existing",
+  limit: number = 25
+): Promise<RankedCandidatesResponse> {
+  return apiFetch<RankedCandidatesResponse>("/results/candidates", {
+    params: { source, limit },
+  });
+}
+
+/** Fetch candidate-level profiles merged across QM + MD output tables */
+export async function getCandidateProfiles(
+  limit: number = 100
+): Promise<CandidateProfilesResponse> {
+  return apiFetch<CandidateProfilesResponse>("/results/profiles", {
+    params: { limit },
+  });
+}
+
+/** Fetch available summary and docking artifacts for browsing */
+export async function getResultArtifacts(
+  limit: number = 200
+): Promise<ResultArtifactsResponse> {
+  return apiFetch<ResultArtifactsResponse>("/results/artifacts", {
+    params: { limit },
+  });
 }

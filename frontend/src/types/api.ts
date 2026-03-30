@@ -121,6 +121,7 @@ export interface EmbeddingPoint {
   dataset: string;
   qed: number;
   mw: number;
+  logp?: number;
   source: EmbeddingSource;
 }
 
@@ -135,4 +136,55 @@ export interface ApiErrorResponse {
     code: string;
     message: string;
   };
+}
+
+// ─── 7. Results Showcase ─────────────────────────────────────────────────────
+
+export interface ResultsOverviewCounts {
+  existing_ranked: number;
+  generated_candidates: number;
+  qm_profiles: number;
+  md_stability: number;
+  md_rmsd: number;
+  md_summaries: number;
+  qm_summaries: number;
+  docking_result_files: number;
+}
+
+export interface ResultsOverview {
+  counts: ResultsOverviewCounts;
+  highlights: {
+    top_existing: Record<string, string | number> | null;
+    best_qm: Record<string, string | number> | null;
+  };
+  sources: {
+    existing_candidates: string;
+    generated_candidates: string;
+    qm_results: string;
+    md_stability: string;
+    md_rmsd: string;
+  };
+}
+
+export interface RankedCandidatesResponse {
+  source: "existing" | "generated";
+  file: string;
+  count: number;
+  items: Array<Record<string, string | number>>;
+}
+
+export interface CandidateProfilesResponse {
+  count: number;
+  items: Array<Record<string, string | number>>;
+}
+
+export interface ResultArtifact {
+  path: string;
+  name: string;
+  size_bytes: number;
+}
+
+export interface ResultArtifactsResponse {
+  count: number;
+  items: ResultArtifact[];
 }

@@ -44,31 +44,24 @@ export default function RightPanel({ isOpen, onToggle }: RightPanelProps) {
   const selectedMoleculeId = useUiStore((s) => s.selectedMoleculeId);
 
   return (
-    <>
-      {/* Collapsed state - narrow strip with expand button */}
-      <div
-        className={`flex flex-shrink-0 flex-col border-l border-slate-200 bg-white transition-all duration-200 dark:border-slate-700 dark:bg-slate-800 ${
-          isOpen ? "hidden" : "w-12"
-        }`}
-      >
+    <aside
+      className={`flex flex-shrink-0 flex-col border-l border-slate-200 bg-white transition-all duration-300 ease-out dark:border-[#1e293b] dark:bg-[#0b0f19] ${
+        isOpen ? "w-80 md:w-96" : "w-12"
+      }`}
+    >
+      {!isOpen ? (
         <div className="flex flex-1 flex-col items-center justify-start pt-4">
           <button
             type="button"
             onClick={onToggle}
-            className="flex items-center justify-center rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            className="flex items-center justify-center rounded-lg p-2 text-slate-500 transition-all duration-200 hover:-translate-x-[1px] hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
             aria-label="Open molecule viewer"
           >
             <ChevronLeftIcon />
           </button>
         </div>
-      </div>
-
-      {/* Expanded state */}
-      <aside
-        className={`flex flex-shrink-0 flex-col border-l border-slate-200 bg-white transition-all duration-200 dark:border-[#1e293b] dark:bg-[#0b0f19] ${
-          isOpen ? "w-80 md:w-96" : "hidden w-0"
-        }`}
-      >
+      ) : (
+        <>
         <div className="flex h-12 flex-shrink-0 items-center justify-between border-b border-slate-200 px-3 dark:border-[#1e293b]">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
             Molecule Viewer
@@ -82,10 +75,11 @@ export default function RightPanel({ isOpen, onToggle }: RightPanelProps) {
             <ChevronRightIcon />
           </button>
         </div>
-        <div className="flex flex-1 flex-col min-h-0">
+        <div className="panel-enter flex min-h-0 flex-1 flex-col">
           <MoleculeViewer moleculeId={selectedMoleculeId} />
         </div>
-      </aside>
-    </>
+        </>
+      )}
+    </aside>
   );
 }

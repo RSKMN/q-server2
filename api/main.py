@@ -1,26 +1,19 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routers import health, molecules, embeddings, experiments
+from api.routers import health, molecules, embeddings, experiments, results
 from services.database.postgres_client import get_engine
 from services.database import models as db_models
 from fastapi.responses import Response
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # startup
-    try:
-        # your existing init (db, milvus, etc.)
-        engine = get_engine()
-        # other setup...
-
-        yield
-
-    finally:
-        # cleanup if needed
-        pass
+async def lifespan(_: FastAPI):
+    # Initialize DB schema on startup.
+    engine = get_engine()
+    db_models.Base.metadata.create_all(bind=engine)
+    yield
 
 
 app = FastAPI(title="Research Lab API", lifespan=lifespan)
@@ -54,6 +47,7 @@ app.include_router(health.router, tags=["health"])
 app.include_router(molecules.router, tags=["molecules"])
 app.include_router(embeddings.router, tags=["embeddings"])
 app.include_router(experiments.router, tags=["experiments"])
+app.include_router(results.router, tags=["results"])
 
 @app.get("/")
 def root():

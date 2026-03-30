@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { PlotParams } from "react-plotly.js";
 import type { EmbeddingPoint } from "@/types/api";
@@ -33,37 +33,13 @@ export default function EmbeddingPlot({
   colorMode,
   onPointClick,
 }: EmbeddingPlotProps) {
-  type EmbeddingPointWithSmiles = EmbeddingPoint & { smiles?: string };
   const [hoveredPoint, setHoveredPoint] = useState<EmbeddingPoint | null>(null);
+  const [hoverCoords, setHoverCoords] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const resolvePointFromCustomdata = (customdata: unknown): EmbeddingPoint | null => {
-    if (!Array.isArray(customdata) || customdata.length < 2) {
-      return null;
-    }
-
-    const smilesDatum = customdata[0];
-    const qedDatum = customdata[1];
-
-    const smiles = typeof smilesDatum === "string" ? smilesDatum : "";
-    const qed =
-      typeof qedDatum === "number"
-        ? qedDatum
-        : typeof qedDatum === "string"
-          ? Number(qedDatum)
-          : Number.NaN;
-
-    if (Number.isNaN(qed)) {
-      return null;
-    }
-
-    return (
-      data.find(
-        (point) =>
-          ((point as EmbeddingPointWithSmiles).smiles ?? "") === smiles &&
-          point.qed === qed
-      ) ?? null
-    );
-  };
+  const pointById = useMemo(() => {
+    return new Map(data.map((point) => [point.molecule_id, point]));
+  }, [data]);
 
   const traces = useMemo<PlotParams["data"]>(() => {
     if (colorMode === "qed") {
@@ -75,10 +51,7 @@ export default function EmbeddingPlot({
           x: data.map((point) => point.x),
           y: data.map((point) => point.y),
           ids: data.map((point) => point.molecule_id),
-          customdata: data.map((d) => [
-            (d as EmbeddingPointWithSmiles).smiles ?? "",
-            d.qed,
-          ]),
+          customdata: data,
           marker: {
             size: 8,
             opacity: 0.82,
@@ -93,7 +66,8 @@ export default function EmbeddingPlot({
               thickness: 12,
             },
           },
-          hovertemplate: "SMILES: %{customdata[0]}<br>QED: %{customdata[1]}<extra></extra>",
+          hovertemplate:
+            "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
         },
       ];
     }
@@ -110,16 +84,14 @@ export default function EmbeddingPlot({
         x: datasetPoints.map((point) => point.x),
         y: datasetPoints.map((point) => point.y),
         ids: datasetPoints.map((point) => point.molecule_id),
-        customdata: datasetPoints.map((d) => [
-          (d as EmbeddingPointWithSmiles).smiles ?? "",
-          d.qed,
-        ]),
+        customdata: datasetPoints,
         marker: {
           size: 8,
           opacity: 0.78,
           color: colorMap.get(dataset) ?? "#3b82f6",
         },
-        hovertemplate: "SMILES: %{customdata[0]}<br>QED: %{customdata[1]}<extra></extra>",
+        hovertemplate:
+          "<b>%{customdata.molecule_id}</b><br>Dataset: %{customdata.dataset}<br>QED: %{customdata.qed:.2f}<br>MW: %{customdata.mw:.1f}<extra></extra>",
       };
     });
   }, [colorMode, data]);
@@ -157,7 +129,7 @@ export default function EmbeddingPlot({
   );
 
   return (
-    <div className="h-full min-h-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div ref={containerRef} className="relative h-full min-h-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="h-full min-h-[460px]">
         <Plot
           data={traces}
@@ -166,26 +138,59 @@ export default function EmbeddingPlot({
           style={{ width: "100%", height: "100%" }}
           config={{ displaylogo: false, responsive: true }}
           onHover={(event) => {
-            const hovered = event.points?.[0];
-            if (!hovered) {
-              setHoveredPoint(null);
-              return;
-            }
-            const point = resolvePointFromCustomdata(hovered.customdata);
+            const point = (event.points?.[0]?.customdata as EmbeddingPoint | undefined) ?? null;
             setHoveredPoint(point);
+            const rect = containerRef.current?.getBoundingClientRect();
+            const clientX = event.event?.clientX ?? 0;
+            const clientY = event.event?.clientY ?? 0;
+            if (rect) {
+              setHoverCoords({
+                x: Math.max(10, Math.min(clientX - rect.left + 14, rect.width - 230)),
+                y: Math.max(10, Math.min(clientY - rect.top + 14, rect.height - 130)),
+              });
+            }
           }}
-          onUnhover={() => setHoveredPoint(null)}
+          onUnhover={() => {
+            setHoveredPoint(null);
+            setHoverCoords(null);
+          }}
           onClick={(event) => {
             if (!onPointClick) return;
             const clicked = event.points?.[0];
             if (!clicked) return;
 
-            const target = resolvePointFromCustomdata(clicked.customdata);
+            const direct = (clicked.customdata as EmbeddingPoint | undefined) ?? null;
+            const fallbackId =
+              typeof clicked.id === "string" ? clicked.id : String(clicked.id ?? "");
+
+            const target = direct ?? pointById.get(fallbackId) ?? null;
             if (target) {
               onPointClick(target);
             }
           }}
         />
+      </div>
+
+      <div
+        className={`pointer-events-none absolute z-20 w-52 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur-sm transition-all duration-150 ${
+          hoveredPoint && hoverCoords ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+        }`}
+        style={{
+          left: hoverCoords?.x ?? 10,
+          top: hoverCoords?.y ?? 10,
+        }}
+      >
+        {hoveredPoint ? (
+          <>
+            <p className="text-[11px] font-semibold tracking-wide text-slate-500">MOLECULE PREVIEW</p>
+            <p className="mt-1 font-mono text-xs font-semibold text-slate-900">{hoveredPoint.molecule_id}</p>
+            <p className="mt-0.5 text-xs text-slate-600">{hoveredPoint.dataset}</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">MW {hoveredPoint.mw.toFixed(1)}</div>
+              <div className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">QED {hoveredPoint.qed.toFixed(2)}</div>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">

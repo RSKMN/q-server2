@@ -6,6 +6,14 @@ interface FiltersPanelProps {
   datasets: string[];
   selectedDataset: string;
   onDatasetChange: (dataset: string) => void;
+  mwMin: number;
+  mwMax: number;
+  mwBounds: { min: number; max: number };
+  onMwRangeChange: (min: number, max: number) => void;
+  logpMin: number;
+  logpMax: number;
+  logpBounds: { min: number; max: number };
+  onLogpRangeChange: (min: number, max: number) => void;
   qedMin: number;
   qedMax: number;
   onQedRangeChange: (min: number, max: number) => void;
@@ -17,6 +25,14 @@ export default function FiltersPanel({
   datasets,
   selectedDataset,
   onDatasetChange,
+  mwMin,
+  mwMax,
+  mwBounds,
+  onMwRangeChange,
+  logpMin,
+  logpMax,
+  logpBounds,
+  onLogpRangeChange,
   qedMin,
   qedMax,
   onQedRangeChange,
@@ -33,8 +49,26 @@ export default function FiltersPanel({
     onQedRangeChange(qedMin, clamped);
   };
 
+  const handleMwMinChange = (value: number) => {
+    onMwRangeChange(Math.min(value, mwMax), mwMax);
+  };
+
+  const handleMwMaxChange = (value: number) => {
+    onMwRangeChange(mwMin, Math.max(value, mwMin));
+  };
+
+  const handleLogpMinChange = (value: number) => {
+    onLogpRangeChange(Math.min(value, logpMax), logpMax);
+  };
+
+  const handleLogpMaxChange = (value: number) => {
+    onLogpRangeChange(logpMin, Math.max(value, logpMin));
+  };
+
   const resetFilters = () => {
     onDatasetChange("All");
+    onMwRangeChange(mwBounds.min, mwBounds.max);
+    onLogpRangeChange(logpBounds.min, logpBounds.max);
     onQedRangeChange(0, 1);
     onColorModeChange("dataset");
   };
@@ -87,6 +121,78 @@ export default function FiltersPanel({
           >
             QED
           </button>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-600">
+          <span>MW range</span>
+          <span>
+            {mwMin.toFixed(0)} - {mwMax.toFixed(0)}
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Minimum</label>
+            <input
+              type="range"
+              min={mwBounds.min}
+              max={mwBounds.max}
+              step={1}
+              value={mwMin}
+              onChange={(event) => handleMwMinChange(Number(event.target.value))}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Maximum</label>
+            <input
+              type="range"
+              min={mwBounds.min}
+              max={mwBounds.max}
+              step={1}
+              value={mwMax}
+              onChange={(event) => handleMwMaxChange(Number(event.target.value))}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-600">
+          <span>LogP range</span>
+          <span>
+            {logpMin.toFixed(2)} - {logpMax.toFixed(2)}
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Minimum</label>
+            <input
+              type="range"
+              min={logpBounds.min}
+              max={logpBounds.max}
+              step={0.05}
+              value={logpMin}
+              onChange={(event) => handleLogpMinChange(Number(event.target.value))}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-500">Maximum</label>
+            <input
+              type="range"
+              min={logpBounds.min}
+              max={logpBounds.max}
+              step={0.05}
+              value={logpMax}
+              onChange={(event) => handleLogpMaxChange(Number(event.target.value))}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200"
+            />
+          </div>
         </div>
       </div>
 

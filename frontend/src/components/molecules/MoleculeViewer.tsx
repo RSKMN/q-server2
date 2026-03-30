@@ -1,25 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import type { Molecule, MoleculeDetails } from "@/types/api";
-
-const MOCK_MOLECULES: Molecule[] = [
-  { molecule_id: "MOL-001", smiles: "CC(=O)Oc1ccccc1C(=O)O", mw: 180.16, logp: 1.19, qed: 0.55, dataset: "FDA Approved" },
-  { molecule_id: "MOL-002", smiles: "CC1=CC=C(C=C1)CC(=NN2C3=CC=CC=C3C(=O)C2=O)...", mw: 381.37, logp: 3.53, qed: 0.62, dataset: "FDA Approved" },
-  { molecule_id: "MOL-003", smiles: "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", mw: 194.19, logp: -0.07, qed: 0.54, dataset: "Natural Products" },
-  { molecule_id: "MOL-004", smiles: "CC(C)CC1=CC=C(C=C1)C(C)C(=O)O", mw: 206.29, logp: 3.97, qed: 0.74, dataset: "FDA Approved" },
-  { molecule_id: "MOL-005", smiles: "CN1C2CCC1C(C2)OC(=O)C3=CC=CC=C3C(=O)OCC", mw: 303.35, logp: 2.28, qed: 0.48, dataset: "Natural Products" },
-  { molecule_id: "MOL-006", smiles: "CC(=O)NC1=CC=C(C=C1)O", mw: 151.16, logp: 0.46, qed: 0.73, dataset: "FDA Approved" },
-  { molecule_id: "MOL-007", smiles: "C1=CC=C(C=C1)CC(C(=O)O)NC(=O)C(CC2=CC=CC=C2)NC...", mw: 432.51, logp: 4.21, qed: 0.380, dataset: "Screening" },
-  { molecule_id: "MOL-008", smiles: "COC1=C(C=C2C(=C1)C(=NC=N2)NC3=CC(=C(C=C3)F)Cl)...", mw: 446.90, logp: 3.75, qed: 0.440, dataset: "FDA Approved" },
-  { molecule_id: "MOL-009", smiles: "CC1=C(C(=C(C=C1)C)C)C2=CC=CC=C2", mw: 196.29, logp: 4.85, qed: 0.810, dataset: "Screening" },
-  { molecule_id: "MOL-010", smiles: "CC(=O)OC1=CC=CC=C1C(=O)OC", mw: 194.18, logp: 1.89, qed: 0.680, dataset: "Screening" },
-  { molecule_id: "MOL-011", smiles: "CN(C)CCC1=CNC2=C1C=C(C=C2)O", mw: 176.22, logp: 0.21, qed: 0.650, dataset: "Natural Products" },
-  { molecule_id: "MOL-012", smiles: "C1=CC=C(C(=C1)C(=O)O)NC2=CC=CC=C2C1", mw: 261.11, logp: 5.12, qed: 0.520, dataset: "FDA Approved" },
-  { molecule_id: "MOL-013", smiles: "CC1=CC2=C(C=C1C)N(C=N2)C3=CC=CC=C3", mw: 222.28, logp: 3.21, qed: 0.770, dataset: "Screening" },
-  { molecule_id: "MOL-014", smiles: "COC1=CC=C(C=C1)C2=CC(=O)C3=C(O2)C=C(C=C3O)O", mw: 286.24, logp: 1.97, qed: 0.580, dataset: "Natural Products" },
-  { molecule_id: "MOL-015", smiles: "CC(C)NCC(O)C1=CC=C(O)C=C1", mw: 193.27, logp: 0.64, qed: 0.710, dataset: "FDA Approved" },
-];
+import type { MoleculeDetails } from "@/types/api";
+import { MOCK_MOLECULES } from "./mockMolecules";
 
 interface MoleculeViewerProps {
   moleculeId?: string | null;
@@ -51,19 +34,26 @@ const updateStyle = (style: string, viewer: any, $3DmolMod: any) => {
 
 export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
   const [details, setDetails] = useState<MoleculeDetails | null>(null);
+  const [contentVisible, setContentVisible] = useState(true);
   
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   
   const [viewStyle, setViewStyle] = useState<"stick" | "sphere" | "surface">("stick");
   const [isLoading3D, setIsLoading3D] = useState(false);
+  const [isViewerReady, setIsViewerReady] = useState(false);
   const [error3D, setError3D] = useState<string | null>(null);
 
   useEffect(() => {
+    setContentVisible(false);
+    const frame = window.requestAnimationFrame(() => setContentVisible(true));
+
     // Determine target based on ID
     const molecule = MOCK_MOLECULES.find((m) => m.molecule_id === moleculeId);
     
     if (molecule) {
+      setIsViewerReady(false);
+      setError3D(null);
       setDetails({
         molecule_id: molecule.molecule_id,
         dataset: molecule.dataset,
@@ -84,8 +74,14 @@ export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
         }
       });
     } else {
+      setIsViewerReady(false);
+      setError3D(null);
       setDetails(null);
     }
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
   }, [moleculeId]);
 
   useEffect(() => {
@@ -94,12 +90,14 @@ export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
 
     if (!structures || (!structures.smiles && !structures.sdf)) {
       if (viewerRef.current) viewerRef.current.clear();
+      setIsViewerReady(false);
       return;
     }
 
     const initViewer = async () => {
       try {
         setIsLoading3D(true);
+        setIsViewerReady(false);
         setError3D(null);
         
         // @ts-ignore
@@ -157,11 +155,15 @@ export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
           // 6. Automatically fit molecule using zoomTo() after rendering
           viewerRef.current.zoomTo();
           viewerRef.current.render();
+          setIsViewerReady(true);
         }
       } catch (err) {
         console.error("3Dmol initialization error", err);
         // 7. Show a minimal error message instead of breaking UI
-        if (active) setError3D("Failed to load 3D structure for this molecule.");
+        if (active) {
+          setIsViewerReady(false);
+          setError3D("Failed to load 3D structure for this molecule.");
+        }
       } finally {
         if (active) setIsLoading3D(false);
       }
@@ -175,6 +177,7 @@ export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
       if (viewerRef.current) {
         viewerRef.current.clear();
       }
+      setIsViewerReady(false);
     };
     // 1. Use the entire structures object as dependency
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,9 +212,14 @@ export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
   const p = details.properties;
   const isFDA = details.dataset === "FDA Approved";
   const lipinskiPass = (p.mw ?? 0) <= 500 && (p.logp ?? 0) <= 5 && (p.hbd ?? 0) <= 5 && (p.hba ?? 0) <= 10;
+  const showViewerLoading = !error3D && (isLoading3D || !isViewerReady);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-[#0b0f19] scrollbar-thin scrollbar-track-slate-50 scrollbar-thumb-slate-200 dark:scrollbar-track-[#0b0f19] dark:scrollbar-thumb-[#1e293b]">
+    <div
+      className={`flex h-full flex-col overflow-y-auto bg-white scrollbar-thin scrollbar-track-slate-50 scrollbar-thumb-slate-200 transition-all duration-200 ease-out dark:bg-[#0b0f19] dark:scrollbar-track-[#0b0f19] dark:scrollbar-thumb-[#1e293b] ${
+        contentVisible ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+      }`}
+    >
       {/* Header */}
       <div className="flex items-start justify-between border-b border-slate-200 p-5 dark:border-[#1e293b]">
         <div>
@@ -261,13 +269,18 @@ export default function MoleculeViewer({ moleculeId }: MoleculeViewerProps) {
                 </svg>
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{error3D}</p>
               </div>
-            ) : isLoading3D ? (
+            ) : showViewerLoading ? (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/80 dark:bg-[#0b0f19]/80">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-teal-500 dark:border-slate-700 dark:border-t-teal-500"></div>
               </div>
             ) : null}
             
-            <div ref={containerRef} className="absolute inset-0 z-10 w-full h-full" />
+            <div
+              ref={containerRef}
+              className={`absolute inset-0 z-10 h-full w-full transition-opacity duration-200 ${
+                isViewerReady ? "opacity-100" : "opacity-0"
+              }`}
+            />
             <span className="pointer-events-none absolute bottom-3 right-3 z-30 text-[10px] font-semibold tracking-widest text-slate-400 uppercase drop-shadow-md">
               Powered by 3Dmol
             </span>

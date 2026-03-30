@@ -1,4 +1,5 @@
 export { default as ChartCard } from "./ChartCard";
+export { default as ChartSkeleton } from "./ChartSkeleton";
 export { default as DatasetSelector } from "./DatasetSelector";
 export { default as LogpDistributionChart } from "./LogpDistributionChart";
 export { default as MwDistributionChart } from "./MwDistributionChart";

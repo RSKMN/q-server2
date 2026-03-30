@@ -15,6 +15,10 @@ export default function ChemicalSpacePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [dataset, setDataset] = useState<string>("All");
+  const [mwMin, setMwMin] = useState(0);
+  const [mwMax, setMwMax] = useState(1000);
+  const [logpMin, setLogpMin] = useState(-2);
+  const [logpMax, setLogpMax] = useState(8);
   const [qedMin, setQedMin] = useState(0);
   const [qedMax, setQedMax] = useState(1);
   const [colorMode, setColorMode] = useState<ColorMode>("dataset");
@@ -56,10 +60,44 @@ export default function ChemicalSpacePage() {
   const filteredData = useMemo(() => {
     return points.filter((point) => {
       const matchDataset = dataset === "All" || point.dataset === dataset;
+      const matchMw = point.mw >= mwMin && point.mw <= mwMax;
+      const valueLogp = point.logp ?? 0;
+      const matchLogp = valueLogp >= logpMin && valueLogp <= logpMax;
       const matchQed = point.qed >= qedMin && point.qed <= qedMax;
-      return matchDataset && matchQed;
+      return matchDataset && matchMw && matchLogp && matchQed;
     });
-  }, [dataset, points, qedMin, qedMax]);
+  }, [dataset, logpMax, logpMin, mwMax, mwMin, points, qedMax, qedMin]);
+
+  const mwBounds = useMemo(() => {
+    if (!points.length) return { min: 0, max: 1000 };
+    const values = points.map((point) => point.mw);
+    return {
+      min: Math.floor(Math.min(...values)),
+      max: Math.ceil(Math.max(...values)),
+    };
+  }, [points]);
+
+  const logpBounds = useMemo(() => {
+    if (!points.length) return { min: -2, max: 8 };
+    const values = points
+      .map((point) => point.logp)
+      .filter((value): value is number => typeof value === "number");
+    if (!values.length) return { min: -2, max: 8 };
+    return {
+      min: Math.floor(Math.min(...values)),
+      max: Math.ceil(Math.max(...values)),
+    };
+  }, [points]);
+
+  useEffect(() => {
+    setMwMin(mwBounds.min);
+    setMwMax(mwBounds.max);
+  }, [mwBounds.max, mwBounds.min]);
+
+  useEffect(() => {
+    setLogpMin(logpBounds.min);
+    setLogpMax(logpBounds.max);
+  }, [logpBounds.max, logpBounds.min]);
 
   const availableDatasets = useMemo(() => {
     return Array.from(new Set(points.map((point) => point.dataset))).sort();
@@ -126,6 +164,20 @@ export default function ChemicalSpacePage() {
             datasets={availableDatasets}
             selectedDataset={dataset}
             onDatasetChange={setDataset}
+            mwMin={mwMin}
+            mwMax={mwMax}
+            mwBounds={mwBounds}
+            onMwRangeChange={(min, max) => {
+              setMwMin(min);
+              setMwMax(max);
+            }}
+            logpMin={logpMin}
+            logpMax={logpMax}
+            logpBounds={logpBounds}
+            onLogpRangeChange={(min, max) => {
+              setLogpMin(min);
+              setLogpMax(max);
+            }}
             qedMin={qedMin}
             qedMax={qedMax}
             onQedRangeChange={handleQedChange}
@@ -136,8 +188,10 @@ export default function ChemicalSpacePage() {
 
         <div className="min-h-0 flex-1">
           {isLoading ? (
-            <div className="flex h-full min-h-[420px] items-center justify-center rounded-xl border border-slate-200 bg-white">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+            <div className="h-full min-h-[420px] rounded-xl border border-slate-200 bg-white p-4">
+              <div className="h-6 w-56 rounded-md bg-slate-100 skeleton-shimmer" />
+              <div className="mt-3 h-4 w-72 rounded-md bg-slate-100 skeleton-shimmer" />
+              <div className="mt-6 h-[460px] rounded-xl bg-slate-100 skeleton-shimmer" />
             </div>
           ) : (
             <EmbeddingPlot

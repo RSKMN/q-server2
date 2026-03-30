@@ -9,6 +9,7 @@ import SummaryCards from "@/components/dashboard/SummaryCards";
 import MwDistributionChart from "@/components/dashboard/MwDistributionChart";
 import LogpDistributionChart from "@/components/dashboard/LogpDistributionChart";
 import ChartCard from "@/components/dashboard/ChartCard";
+import ChartSkeleton from "@/components/dashboard/ChartSkeleton";
 import QedDistributionChart from "@/components/dashboard/QedDistributionChart";
 import TpsaDistributionChart from "@/components/dashboard/TpsaDistributionChart";
 
@@ -60,8 +61,26 @@ export default function DashboardPage() {
       </div>
 
       {loading && (
-        <div className="flex h-64 items-center justify-center">
-          <p className="text-slate-500 dark:text-slate-400">Loading statistics...</p>
+        <div className="space-y-6">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-[#1e293b] dark:bg-[#0b0f19]"
+              >
+                <div className="h-4 w-24 rounded-md bg-slate-200 skeleton-shimmer" />
+                <div className="mt-4 h-8 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
+                <div className="mt-3 h-3 w-32 rounded-md bg-slate-200 skeleton-shimmer" />
+              </div>
+            ))}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ChartSkeleton />
+            <ChartSkeleton titleWidthClass="w-28" />
+            <ChartSkeleton titleWidthClass="w-32" />
+            <ChartSkeleton titleWidthClass="w-24" />
+          </div>
         </div>
       )}
 
