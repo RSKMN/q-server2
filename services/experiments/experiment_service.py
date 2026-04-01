@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Any, Iterator
 from uuid import UUID
 
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from services.database.models import Dataset, Experiment, ExperimentRun
@@ -87,3 +89,45 @@ class ExperimentService:
 			if run is None:
 				raise ValueError(f"Run not found: {run_id}")
 			run.status = status
+
+	def get_experiment_count(self) -> int:
+		"""Return total count of experiments."""
+		with self._session_scope() as session:
+			count = session.scalar(select(func.count()).select_from(Experiment))
+			return int(count or 0)
+
+	def list_recent_runs(self, limit: int = 8) -> list[dict[str, Any]]:
+		"""Return recent runs with experiment and dataset metadata."""
+		with self._session_scope() as session:
+			stmt = (
+				select(
+					ExperimentRun.run_id,
+					ExperimentRun.status,
+					ExperimentRun.created_at,
+					Experiment.name,
+					Dataset.name,
+				)
+				.join(Experiment, ExperimentRun.experiment_id == Experiment.experiment_id)
+				.join(Dataset, Experiment.dataset_id == Dataset.dataset_id)
+				.order_by(desc(ExperimentRun.created_at))
+				.limit(limit)
+			)
+
+			rows = session.execute(stmt).all()
+			result: list[dict[str, Any]] = []
+			for run_id, status, created_at, experiment_name, dataset_name in rows:
+				created_iso = (
+					created_at.isoformat()
+					if isinstance(created_at, datetime)
+					else datetime.utcnow().isoformat()
+				)
+				result.append(
+					{
+						"run_id": run_id,
+						"status": status,
+						"created_at": created_iso,
+						"experiment_name": experiment_name,
+						"dataset_name": dataset_name,
+					}
+				)
+			return result

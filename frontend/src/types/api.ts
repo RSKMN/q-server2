@@ -188,3 +188,21 @@ export interface ResultArtifactsResponse {
   count: number;
   items: ResultArtifact[];
 }
+
+// ─── 8. Experiment Dashboard ────────────────────────────────────────────────
+
+export interface ExperimentSummaryResponse {
+  experiment_count: number;
+}
+
+export interface RecentRun {
+  run_id: string;
+  experiment_name: string;
+  dataset_name: string;
+  status: string;
+  created_at: string;
+}
+
+export interface RecentRunsResponse {
+  items: RecentRun[];
+}

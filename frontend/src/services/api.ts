@@ -6,6 +6,7 @@
 
 import type {
   CandidateProfilesResponse,
+  ExperimentSummaryResponse,
   Dataset,
   DatasetsResponse,
   Distribution,
@@ -13,6 +14,7 @@ import type {
   MoleculeDetails,
   MoleculesListResponse,
   RankedCandidatesResponse,
+  RecentRunsResponse,
   ResultArtifactsResponse,
   ResultsOverview,
   SimilarityResult,
@@ -359,6 +361,18 @@ export async function getResultArtifacts(
   limit: number = 200
 ): Promise<ResultArtifactsResponse> {
   return apiFetch<ResultArtifactsResponse>("/results/artifacts", {
+    params: { limit },
+  });
+}
+
+/** Fetch total experiment count for dashboard summary cards */
+export async function getExperimentSummary(): Promise<ExperimentSummaryResponse> {
+  return apiFetch<ExperimentSummaryResponse>("/experiments/summary");
+}
+
+/** Fetch recent experiment runs for dashboard activity panel */
+export async function getRecentRuns(limit: number = 8): Promise<RecentRunsResponse> {
+  return apiFetch<RecentRunsResponse>("/runs/recent", {
     params: { limit },
   });
 }

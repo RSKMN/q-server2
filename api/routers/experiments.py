@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from services.experiments.experiment_service import ExperimentService
@@ -42,6 +42,33 @@ class FinishRunRequest(BaseModel):
 
 class StatusResponse(BaseModel):
 	status: str
+
+
+class ExperimentSummaryResponse(BaseModel):
+	experiment_count: int
+
+
+class RecentRunItem(BaseModel):
+	run_id: UUID
+	experiment_name: str
+	dataset_name: str
+	status: str
+	created_at: str
+
+
+class RecentRunsResponse(BaseModel):
+	items: list[RecentRunItem]
+
+
+@router.get("/experiments/summary", response_model=ExperimentSummaryResponse)
+def get_experiment_summary() -> ExperimentSummaryResponse:
+	return ExperimentSummaryResponse(experiment_count=service.get_experiment_count())
+
+
+@router.get("/runs/recent", response_model=RecentRunsResponse)
+def get_recent_runs(limit: int = Query(default=8, ge=1, le=50)) -> RecentRunsResponse:
+	items = service.list_recent_runs(limit=limit)
+	return RecentRunsResponse(items=[RecentRunItem(**item) for item in items])
 
 
 @router.post("/experiments", response_model=CreateExperimentResponse, status_code=status.HTTP_201_CREATED)
