@@ -7,9 +7,9 @@ import { useState } from "react";
 import { Button, Input } from "../../../components/ui";
 import { AuthStatusMessage } from "../_components/AuthStatusMessage";
 import { useAuthCredentialsForm } from "../_hooks/useAuthCredentialsForm";
-import { getAuthErrorMessage, login, setToken } from "@/services";
+import { getAuthErrorMessage, setToken, signup } from "@/services";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -31,9 +31,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await login(values.email.trim(), values.password);
+      const response = await signup(values.email.trim(), values.password);
       setToken(response.token);
-      setSuccessMessage(response.message ?? "Signed in successfully. Redirecting...");
+      setSuccessMessage(response.message ?? "Account created. Redirecting...");
       router.push("/dashboard");
     } catch (error) {
       setApiError(getAuthErrorMessage(error));
@@ -45,13 +45,13 @@ export default function LoginPage() {
   return (
     <section className="space-y-6">
       <header className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-100">Sign in</h2>
-        <p className="text-sm text-slate-400">Access your research workspace.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-100">Create account</h2>
+        <p className="text-sm text-slate-400">Start building with QuDrugForge.</p>
       </header>
 
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <Input
-          id="login-email"
+          id="signup-email"
           name="email"
           type="email"
           autoComplete="email"
@@ -66,12 +66,12 @@ export default function LoginPage() {
         />
 
         <Input
-          id="login-password"
+          id="signup-password"
           name="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           label="Password"
-          placeholder="Enter your password"
+          placeholder="Create a strong password"
           value={values.password}
           onChange={(event) => setFieldValue("password", event.target.value)}
           onBlur={() => markTouched("password")}
@@ -88,20 +88,18 @@ export default function LoginPage() {
           className="w-full"
           disabled={!isValid || isLoading}
           isLoading={isLoading}
-          loadingText="Signing in..."
+          loadingText="Creating account..."
         >
-          Sign in
+          Sign up
         </Button>
       </form>
 
-      <div className="flex items-center justify-between text-sm text-slate-400">
-        <Link href="/forgot-password" className="transition hover:text-cyan-300">
-          Forgot password?
+      <p className="text-center text-sm text-slate-400">
+        Already have an account?{" "}
+        <Link href="/login" className="transition hover:text-cyan-300">
+          Sign in
         </Link>
-        <Link href="/signup" className="transition hover:text-cyan-300">
-          Create account
-        </Link>
-      </div>
+      </p>
     </section>
   );
 }

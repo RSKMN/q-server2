@@ -1,4 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { isAuthenticated, removeToken } from "@/services";
 
 const DASHBOARD_NAV_ITEMS = [
   { label: "Overview", href: "/dashboard" },
@@ -18,6 +24,27 @@ export default function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const router = useRouter();
+  const [canAccess, setCanAccess] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace("/login");
+      return;
+    }
+
+    setCanAccess(true);
+  }, [router]);
+
+  const handleLogout = () => {
+    removeToken();
+    router.replace("/");
+  };
+
+  if (!canAccess) {
+    return <div className="min-h-screen bg-slate-950" />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-white/10 bg-slate-900/70 backdrop-blur-xl lg:block">
@@ -58,6 +85,13 @@ export default function DashboardLayout({
             <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-300 to-blue-500" />
               <div className="hidden text-sm text-slate-300 sm:block">Research User</div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-white/10"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </header>
