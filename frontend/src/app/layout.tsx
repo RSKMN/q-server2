@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import AppShell from "@/components/shared/AppShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Scientific Dashboard",
-  description: "Scientific dashboard application",
+  title: "Quinfosys™ QuDrugForge",
+  description: "Quinfosys QuDrugForge application",
 };
 
 export default function RootLayout({
@@ -14,8 +13,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        <AppShell>{children}</AppShell>
+      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+        {children}
       </body>
     </html>
   );

@@ -26,6 +26,11 @@ const API_BASE_URL =
     process.env?.NEXT_PUBLIC_API_URL) ||
   "http://localhost:8000";
 
+const API_TIMEOUT_MS =
+  (typeof process !== "undefined" &&
+    Number(process.env?.NEXT_PUBLIC_API_TIMEOUT_MS)) ||
+  10000;
+
 const DEFAULT_DATASETS: Dataset[] = ["ZINC250k", "ChEMBL", "PDBbind", "DrugBank"];
 
 const EMPTY_DISTRIBUTION: Distribution = {
@@ -38,22 +43,31 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status?: number,
-    public body?: unknown
+    public body?: unknown,
+    public url?: string
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
+type QueryParams = Record<string, string | number | boolean | undefined | null>;
+
+interface ApiRequestOptions extends Omit<RequestInit, "body"> {
+  params?: QueryParams;
+  body?: unknown;
+  timeoutMs?: number;
+}
+
 /** Build full URL with optional path and query params */
 function buildUrl(
   path: string,
-  params?: Record<string, string | number | undefined>
+  params?: QueryParams
 ): string {
   const url = new URL(path.replace(/^\//, ""), API_BASE_URL);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== "") {
+      if (value !== undefined && value !== null && value !== "") {
         url.searchParams.set(key, String(value));
       }
     });
@@ -61,44 +75,120 @@ function buildUrl(
   return url.toString();
 }
 
-/** Generic fetch wrapper with error handling */
-async function apiFetch<T>(
+/** Core request helper with timeout, JSON parsing, and normalized API errors */
+async function request<T>(
+  method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
-  options?: RequestInit & {
-    params?: Record<string, string | number | undefined>;
-  }
+  options: ApiRequestOptions = {}
 ): Promise<T> {
-  const { params, ...fetchOptions } = options ?? {};
-  const url = params ? buildUrl(path, params) : buildUrl(path);
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...fetchOptions.headers,
-  };
+  const { params, body, timeoutMs = API_TIMEOUT_MS, ...fetchOptions } = options;
+  const url = buildUrl(path, params);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  const response = await fetch(url, { ...fetchOptions, headers });
+  const mergedHeaders = new Headers(fetchOptions.headers ?? {});
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+  if (body !== undefined && !isFormData && !mergedHeaders.has("Content-Type")) {
+    mergedHeaders.set("Content-Type", "application/json");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...fetchOptions,
+      method,
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? (body as BodyInit)
+            : JSON.stringify(body),
+      headers: mergedHeaders,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new ApiError(`Request timeout after ${timeoutMs}ms`, 408, undefined, url);
+    }
+    throw new ApiError("Network request failed", undefined, error, url);
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const rawText = await response.text();
+  let parsedBody: unknown;
+  if (rawText) {
+    try {
+      parsedBody = JSON.parse(rawText);
+    } catch {
+      parsedBody = rawText;
+    }
+  }
 
   if (!response.ok) {
-    let body: unknown;
-    try {
-      body = await response.json();
-    } catch {
-      body = await response.text();
-    }
     throw new ApiError(
       `API error: ${response.status} ${response.statusText}`,
       response.status,
-      body
+      parsedBody,
+      url
     );
   }
 
-  const text = await response.text();
-  if (!text) return undefined as T;
-
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new ApiError("Invalid JSON response", response.status, text);
+  if (!rawText) {
+    return undefined as T;
   }
+
+  if (parsedBody === rawText) {
+    throw new ApiError("Invalid JSON response", response.status, rawText, url);
+  }
+
+  return parsedBody as T;
+}
+
+export async function get<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return request<T>("GET", path, options);
+}
+
+export async function post<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return request<T>("POST", path, options);
+}
+
+export async function put<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return request<T>("PUT", path, options);
+}
+
+export async function del<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  return request<T>("DELETE", path, options);
+}
+
+export const apiDelete = del;
+
+export const apiClient = {
+  get,
+  post,
+  put,
+  delete: del,
+};
+
+/** Backward-compatible internal fetch wrapper for existing endpoint helpers */
+async function apiFetch<T>(
+  path: string,
+  options: ApiRequestOptions = {}
+): Promise<T> {
+  const method = (options.method?.toUpperCase() as "GET" | "POST" | "PUT" | "DELETE" | undefined) ?? "GET";
+  if (method === "GET") {
+    return get<T>(path, options);
+  }
+  if (method === "POST") {
+    return post<T>(path, options);
+  }
+  if (method === "PUT") {
+    return put<T>(path, options);
+  }
+  if (method === "DELETE") {
+    return del<T>(path, options);
+  }
+  throw new ApiError(`Unsupported HTTP method: ${method}`);
 }
 
 // ─── API functions ───────────────────────────────────────────────────────────
@@ -198,7 +288,7 @@ export async function searchSimilar(
       SimilaritySearchResponse | { neighbors: SimilaritySearchResponse["neighbors"] }
     >("/embedding/search", {
       method: "POST",
-      body: JSON.stringify({ smiles, top_k: topK }),
+      body: { smiles, top_k: topK },
     });
 
     if ("neighbors" in data) {
@@ -212,7 +302,7 @@ export async function searchSimilar(
       results: Array<{ molecule_id: string; score: number }>;
     }>("/molecules/similar", {
       method: "POST",
-      body: JSON.stringify({ smiles, top_k: topK }),
+      body: { smiles, top_k: topK },
     });
 
     const neighbors: SimilarityResult[] = (data.results ?? []).map((item) => ({
