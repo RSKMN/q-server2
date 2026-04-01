@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Quinfosys™ QuDrugForge",
-  description: "Quinfosys QuDrugForge application",
+  title: "QuinfosysTM QuDrugForge",
+  description: "QuinfosysTM QuDrugForge - Quantum AI for Drug Discovery",
 };
 
 export default function RootLayout({

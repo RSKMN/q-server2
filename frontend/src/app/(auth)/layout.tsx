@@ -13,8 +13,9 @@ export default function AuthLayout({
       <section className="relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
         <header className="mb-6 text-center">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">
-            Welcome to QuDrugForge
+            Welcome to QuinfosysTM QuDrugForge
           </h1>
+          <p className="mt-2 text-sm text-cyan-300">Quantum AI for Drug Discovery</p>
         </header>
 
         <div>{children}</div>

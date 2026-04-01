@@ -9,8 +9,13 @@ export default function MarketingLayout({
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur-md">
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-slate-100">
-            QuDrugForge
+          <Link href="/" className="leading-tight text-slate-100">
+            <span className="block text-base font-semibold tracking-tight sm:text-lg">
+              QuinfosysTM QuDrugForge
+            </span>
+            <span className="block text-[11px] font-medium text-cyan-300 sm:text-xs">
+              Quantum AI for Drug Discovery
+            </span>
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
@@ -36,7 +41,7 @@ export default function MarketingLayout({
               href="/signup"
               className="rounded-md bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
             >
-              Signup
+              Get Started
             </Link>
           </div>
         </nav>

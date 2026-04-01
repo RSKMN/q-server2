@@ -23,8 +23,12 @@ export default function DashboardLayout({
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-white/10 bg-slate-900/70 backdrop-blur-xl lg:block">
         <div className="flex h-full flex-col">
           <div className="border-b border-white/10 px-6 py-5">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">QuDrugForge</p>
-            <h2 className="mt-2 text-lg font-semibold tracking-tight">Scientific Platform</h2>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+              QuinfosysTM QuDrugForge
+            </p>
+            <h2 className="mt-2 text-lg font-semibold tracking-tight">
+              Quantum AI for Drug Discovery
+            </h2>
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4">
