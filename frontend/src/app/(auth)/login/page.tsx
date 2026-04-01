@@ -7,39 +7,49 @@ import { useState } from "react";
 import { Button, Input } from "../../../components/ui";
 import { AuthStatusMessage } from "../_components/AuthStatusMessage";
 import { useAuthCredentialsForm } from "../_hooks/useAuthCredentialsForm";
-import { getAuthErrorMessage, login, setToken } from "@/services";
+import { setToken } from "@/services";
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const { values, isValid, setFieldValue, markTouched, getErrorFor, markSubmitted } =
-    useAuthCredentialsForm();
+    useAuthCredentialsForm({
+      requireValidEmailFormat: false,
+      passwordMinLength: 1,
+    });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     markSubmitted();
 
-    if (!isValid || isLoading) {
+    if (isLoading) {
       return;
     }
 
-    setApiError(null);
+    const email = values.email.trim();
+    const password = values.password.trim();
+
+    if (!email || !password) {
+      setSuccessMessage(null);
+      setFormError("Email and password are required.");
+      return;
+    }
+
+    if (!isValid) {
+      return;
+    }
+
+    setFormError(null);
     setSuccessMessage(null);
     setIsLoading(true);
 
-    try {
-      const response = await login(values.email.trim(), values.password);
-      setToken(response.token);
-      setSuccessMessage(response.message ?? "Signed in successfully. Redirecting...");
-      router.push("/dashboard");
-    } catch (error) {
-      setApiError(getAuthErrorMessage(error));
-    } finally {
-      setIsLoading(false);
-    }
+    setToken(`mock-auth-token-${Date.now()}`);
+    setSuccessMessage("Signed in successfully. Redirecting...");
+    router.push("/dashboard");
+    setIsLoading(false);
   };
 
   return (
@@ -80,7 +90,7 @@ export default function LoginPage() {
           required
         />
 
-        {apiError ? <AuthStatusMessage type="error" message={apiError} /> : null}
+        {formError ? <AuthStatusMessage type="error" message={formError} /> : null}
         {successMessage ? <AuthStatusMessage type="success" message={successMessage} /> : null}
 
         <Button

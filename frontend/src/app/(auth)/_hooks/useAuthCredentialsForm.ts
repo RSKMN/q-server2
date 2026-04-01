@@ -19,43 +19,52 @@ type AuthTouched = {
   password: boolean;
 };
 
-export function validateEmail(email: string): string {
+type AuthCredentialsFormOptions = {
+  requireValidEmailFormat?: boolean;
+  passwordMinLength?: number;
+};
+
+export function validateEmail(email: string, requireValidEmailFormat = true): string {
   const trimmedEmail = email.trim();
 
   if (!trimmedEmail) {
     return "Email is required.";
   }
 
-  if (!EMAIL_PATTERN.test(trimmedEmail)) {
+  if (requireValidEmailFormat && !EMAIL_PATTERN.test(trimmedEmail)) {
     return "Enter a valid email address.";
   }
 
   return "";
 }
 
-export function validatePassword(password: string): string {
-  if (!password) {
+export function validatePassword(password: string, minLength = 6): string {
+  const normalizedPassword = password.trim();
+
+  if (!normalizedPassword) {
     return "Password is required.";
   }
 
-  if (password.length < 6) {
-    return "Password must be at least 6 characters.";
+  if (minLength > 1 && normalizedPassword.length < minLength) {
+    return `Password must be at least ${minLength} characters.`;
   }
 
   return "";
 }
 
-export function useAuthCredentialsForm() {
+export function useAuthCredentialsForm(options: AuthCredentialsFormOptions = {}) {
+  const { requireValidEmailFormat = true, passwordMinLength = 6 } = options;
+
   const [values, setValues] = useState<AuthValues>({ email: "", password: "" });
   const [touched, setTouched] = useState<AuthTouched>({ email: false, password: false });
   const [submitted, setSubmitted] = useState(false);
 
   const errors = useMemo<AuthErrors>(
     () => ({
-      email: validateEmail(values.email),
-      password: validatePassword(values.password),
+      email: validateEmail(values.email, requireValidEmailFormat),
+      password: validatePassword(values.password, passwordMinLength),
     }),
-    [values.email, values.password],
+    [passwordMinLength, requireValidEmailFormat, values.email, values.password],
   );
 
   const isValid = !errors.email && !errors.password;

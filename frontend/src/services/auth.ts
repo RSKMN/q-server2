@@ -87,11 +87,17 @@ export function getAuthErrorMessage(error: unknown): string {
 }
 
 export async function login(email: string, password: string): Promise<AuthSuccessResponse> {
-  const payload = await apiClient.post<unknown>("/auth/login", {
-    body: { email, password },
-  });
+  const normalizedEmail = email.trim();
+  const normalizedPassword = password.trim();
 
-  return normalizeAuthResponse(payload);
+  if (!normalizedEmail || !normalizedPassword) {
+    throw new Error("Email and password are required.");
+  }
+
+  return {
+    token: `mock-auth-token-${Date.now()}`,
+    message: "Signed in successfully. Redirecting...",
+  };
 }
 
 export async function signup(email: string, password: string): Promise<AuthSuccessResponse> {
