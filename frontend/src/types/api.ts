@@ -140,6 +140,37 @@ export interface ApiErrorResponse {
 
 // ─── 7. Results Showcase ─────────────────────────────────────────────────────
 
+export interface GeneratedMoleculeResult {
+  molecule_id: string;
+  smiles: string;
+  molecular_weight: number;
+  logp: number;
+  qed: number;
+}
+
+export interface DockingResult {
+  molecule_id: string;
+  binding_affinity: number;
+  h_bonds: number;
+  target_protein: string;
+}
+
+export interface SimulationResult {
+  molecule_id: string;
+  smiles: string;
+  time: number;
+  rmsd: number;
+}
+
+export interface QuantumResult {
+  molecule_id: string;
+  smiles: string;
+  homo_lumo_gap: number;
+  qsvm_score: number;
+  stability_score: number;
+  interpretation: "Highly Stable" | "Stable" | "Monitor";
+}
+
 export interface ResultsOverviewCounts {
   existing_ranked: number;
   generated_candidates: number;

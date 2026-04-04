@@ -2,32 +2,54 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  getCandidateProfiles,
+  getDockingResults,
+  getGeneratedMolecules,
   getRankedCandidates,
   getResultArtifacts,
   getResultsOverview,
+  getSimulationResults,
+  getQuantumResults,
 } from "@/services/api";
 import type {
-  CandidateProfilesResponse,
+  DockingResult,
   RankedCandidatesResponse,
+  GeneratedMoleculeResult,
   ResultArtifactsResponse,
+  ResultArtifact,
+  QuantumResult,
   ResultsOverview,
+  SimulationResult,
 } from "@/types/api";
+import { ArtifactGrid } from "./components/artifact-grid";
+import { FilteredCandidatesSection } from "./components/filtered-candidates-section";
+import { DockingResultsTable } from "./components/docking-results-table";
+import { GeneratedMoleculesTable } from "./components/generated-molecules-table";
+import { ResultsFilterBar } from "./components/results-filter-bar";
+import type { ScoreBand, StabilityBand } from "./components/results-filter-types";
+import { MetricGrid } from "./components/metric-grid";
+import { SimulationResultsSection } from "./components/simulation-results-section";
+import { QuantumResultsSection } from "./components/quantum-results-section";
+import { SectionTabs } from "./components/section-tabs";
+import { type ResultSection } from "./components/results-types";
 
-function formatValue(value: string | number | undefined): string {
-  if (value === undefined) return "-";
-  if (typeof value === "number") {
-    if (Number.isInteger(value)) return String(value);
-    return value.toFixed(4);
-  }
-  return value;
+function filterArtifacts(items: ResultArtifact[], keywords: string[]): ResultArtifact[] {
+  return items.filter((artifact) => {
+    const searchable = `${artifact.name} ${artifact.path}`.toLowerCase();
+    return keywords.some((keyword) => searchable.includes(keyword));
+  });
 }
 
 export default function ResultsPage() {
-  const [source, setSource] = useState<"existing" | "generated">("existing");
+  const [activeSection, setActiveSection] = useState<ResultSection>("generated");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scoreBand, setScoreBand] = useState<ScoreBand>("all");
+  const [stabilityBand, setStabilityBand] = useState<StabilityBand>("all");
   const [overview, setOverview] = useState<ResultsOverview | null>(null);
-  const [ranked, setRanked] = useState<RankedCandidatesResponse | null>(null);
-  const [profiles, setProfiles] = useState<CandidateProfilesResponse | null>(null);
+  const [generatedMolecules, setGeneratedMolecules] = useState<GeneratedMoleculeResult[]>([]);
+  const [dockingResults, setDockingResults] = useState<DockingResult[]>([]);
+  const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
+  const [quantumResults, setQuantumResults] = useState<QuantumResult[]>([]);
+  const [filteredRanked, setFilteredRanked] = useState<RankedCandidatesResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ResultArtifactsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +62,31 @@ export default function ResultsPage() {
         setLoading(true);
         setError(null);
 
-        const [overviewData, rankedData, profilesData, artifactsData] = await Promise.all([
+        const [
+          overviewData,
+          generatedData,
+          dockingData,
+          simulationData,
+          quantumData,
+          filteredData,
+          artifactsData,
+        ] = await Promise.all([
           getResultsOverview(),
-          getRankedCandidates(source, 20),
-          getCandidateProfiles(20),
-          getResultArtifacts(60),
+          getGeneratedMolecules(25),
+          getDockingResults(25),
+          getSimulationResults(60),
+          getQuantumResults(25),
+          getRankedCandidates("existing", 25),
+          getResultArtifacts(120),
         ]);
 
         if (!active) return;
         setOverview(overviewData);
-        setRanked(rankedData);
-        setProfiles(profilesData);
+        setGeneratedMolecules(generatedData);
+        setDockingResults(dockingData);
+        setSimulationResults(simulationData);
+        setQuantumResults(quantumData);
+        setFilteredRanked(filteredData);
         setArtifacts(artifactsData);
       } catch (err) {
         if (!active) return;
@@ -66,47 +102,66 @@ export default function ResultsPage() {
     return () => {
       active = false;
     };
-  }, [source]);
+  }, []);
 
-  const rankedColumns = useMemo(() => {
-    if (!ranked?.items.length) return [] as string[];
-    return Object.keys(ranked.items[0]);
-  }, [ranked]);
+  function handleClearFilters() {
+    setSearchQuery("");
+    setScoreBand("all");
+    setStabilityBand("all");
+  }
 
-  const profileColumns = useMemo(() => {
-    if (!profiles?.items.length) return [] as string[];
-    return Object.keys(profiles.items[0]);
-  }, [profiles]);
+  const metricItems = useMemo(() => {
+    if (!overview) return [] as Array<{ label: string; value: string | number }>;
+    return Object.entries(overview.counts).map(([key, value]) => ({
+      label: key.replace(/_/g, " "),
+      value,
+    }));
+  }, [overview]);
+
+  const dockingArtifacts = useMemo(
+    () => filterArtifacts(artifacts?.items ?? [], ["dock", "docking", "vina", "pose"]),
+    [artifacts]
+  );
+
+  const simulationArtifacts = useMemo(
+    () => filterArtifacts(artifacts?.items ?? [], ["md", "rmsd", "stability", "traj", "simulation"]),
+    [artifacts]
+  );
+
+  const quantumArtifacts = useMemo(
+    () => filterArtifacts(artifacts?.items ?? [], ["qm", "quantum", "dft", "energy", "homo", "lumo"]),
+    [artifacts]
+  );
 
   return (
-    <div className="flex flex-col gap-6 pb-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="relative flex flex-col gap-6 overflow-hidden pb-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-500/10 to-transparent" />
+
+      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-            Results Showcase
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">
+            Results Research Dashboard
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Consolidated outputs from ranking, QM, MD, and docking pipelines.
+          <p className="mt-1 text-sm text-slate-400">
+            Consolidated evidence across candidate generation, docking, simulation, and quantum analysis.
           </p>
         </div>
-
-        <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          Candidate source
-          <select
-            value={source}
-            onChange={(event) =>
-              setSource(event.target.value as "existing" | "generated")
-            }
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-          >
-            <option value="existing">Existing candidates</option>
-            <option value="generated">Generated candidates</option>
-          </select>
-        </label>
       </div>
 
+      <SectionTabs activeSection={activeSection} onChange={setActiveSection} />
+
+      <ResultsFilterBar
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        scoreBand={scoreBand}
+        onScoreBandChange={setScoreBand}
+        stabilityBand={stabilityBand}
+        onStabilityBandChange={setStabilityBand}
+        onClear={handleClearFilters}
+      />
+
       {error ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
         </div>
       ) : null}
@@ -114,135 +169,92 @@ export default function ResultsPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, idx) => (
-            <div key={idx} className="h-24 rounded-xl bg-slate-200 skeleton-shimmer" />
+            <div key={idx} className="h-24 rounded-xl bg-slate-900/70 skeleton-shimmer" />
           ))}
         </div>
       ) : null}
 
-      {overview ? (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Object.entries(overview.counts).map(([key, value]) => (
-            <article
-              key={key}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800"
-            >
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {key.replace(/_/g, " ")}
-              </p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                {value}
-              </p>
-            </article>
-          ))}
-        </section>
-      ) : null}
+      {overview ? <MetricGrid items={metricItems} /> : null}
 
-      {ranked ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Ranked Candidates ({ranked.count})
-          </h2>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Source: {ranked.file}</p>
+      {!error ? (
+        <div className="space-y-4">
+          {activeSection === "generated" ? (
+            <GeneratedMoleculesTable
+              items={generatedMolecules}
+              searchQuery={searchQuery}
+              scoreBand={scoreBand}
+              stabilityBand={stabilityBand}
+              loading={loading}
+            />
+          ) : null}
 
-          <div className="mt-3 overflow-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr>
-                  {rankedColumns.map((column) => (
-                    <th
-                      key={column}
-                      className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-700 dark:text-slate-300"
-                    >
-                      {column}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {ranked.items.map((item, index) => (
-                  <tr key={index} className="odd:bg-slate-50/60 dark:odd:bg-slate-700/20">
-                    {rankedColumns.map((column) => (
-                      <td
-                        key={`${index}-${column}`}
-                        className="border-b border-slate-100 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                      >
-                        {formatValue(item[column])}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+          {activeSection === "filtered" ? (
+            <FilteredCandidatesSection
+              rows={filteredRanked?.items ?? []}
+              searchQuery={searchQuery}
+              scoreBand={scoreBand}
+              stabilityBand={stabilityBand}
+              loading={loading}
+            />
+          ) : null}
 
-      {profiles ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Cross-Pipeline Candidate Profiles ({profiles.count})
-          </h2>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Merged QM, MD stability, and RMSD summaries by candidate and target.
-          </p>
+          {activeSection === "docking" ? (
+            <>
+              <DockingResultsTable
+                items={dockingResults}
+                searchQuery={searchQuery}
+                scoreBand={scoreBand}
+                stabilityBand={stabilityBand}
+                loading={loading}
+              />
+              {!loading ? (
+                <ArtifactGrid
+                  title={`Docking Artifacts (${dockingArtifacts.length})`}
+                  subtitle="Pose files, scoring outputs, and docked structure artifacts."
+                  items={dockingArtifacts}
+                />
+              ) : null}
+            </>
+          ) : null}
 
-          <div className="mt-3 overflow-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr>
-                  {profileColumns.map((column) => (
-                    <th
-                      key={column}
-                      className="border-b border-slate-200 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-700 dark:text-slate-300"
-                    >
-                      {column}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {profiles.items.map((item, index) => (
-                  <tr key={index} className="odd:bg-slate-50/60 dark:odd:bg-slate-700/20">
-                    {profileColumns.map((column) => (
-                      <td
-                        key={`${index}-${column}`}
-                        className="border-b border-slate-100 px-3 py-2 text-slate-700 dark:border-slate-700 dark:text-slate-200"
-                      >
-                        {formatValue(item[column])}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+          {activeSection === "simulation" ? (
+            <>
+              <SimulationResultsSection
+                items={simulationResults}
+                searchQuery={searchQuery}
+                scoreBand={scoreBand}
+                stabilityBand={stabilityBand}
+                loading={loading}
+              />
+              {!loading ? (
+                <ArtifactGrid
+                  title={`Simulation Artifacts (${simulationArtifacts.length})`}
+                  subtitle="Trajectory summaries, RMSD exports, and MD analysis files."
+                  items={simulationArtifacts}
+                />
+              ) : null}
+            </>
+          ) : null}
 
-      {artifacts ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            Available Artifacts ({artifacts.count})
-          </h2>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {artifacts.items.map((artifact) => (
-              <article
-                key={artifact.path}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-              >
-                <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                  {artifact.name}
-                </p>
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {artifact.path}
-                </p>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                  {artifact.size_bytes.toLocaleString()} bytes
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
+          {activeSection === "quantum" ? (
+            <>
+              <QuantumResultsSection
+                items={quantumResults}
+                searchQuery={searchQuery}
+                scoreBand={scoreBand}
+                stabilityBand={stabilityBand}
+                loading={loading}
+              />
+              {!loading ? (
+                <ArtifactGrid
+                  title={`Quantum Artifacts (${quantumArtifacts.length})`}
+                  subtitle="QM logs, descriptor tables, and electronic property exports."
+                  items={quantumArtifacts}
+                />
+              ) : null}
+            </>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

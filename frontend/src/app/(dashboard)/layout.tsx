@@ -12,6 +12,7 @@ const DASHBOARD_NAV_ITEMS = [
   { label: "Molecules", href: "/molecules" },
   { label: "Similarity", href: "/similarity" },
   { label: "Chemical Space", href: "/chemical-space" },
+  { label: "Visualization", href: "/visualization" },
   { label: "Results", href: "/results" },
   { label: "Simulation", href: "/simulation" },
   { label: "Copilot", href: "/copilot" },

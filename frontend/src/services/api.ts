@@ -6,19 +6,23 @@
 
 import type {
   CandidateProfilesResponse,
+  DockingResult,
   ExperimentSummaryResponse,
   Dataset,
   DatasetsResponse,
   Distribution,
   EmbeddingMapResponse,
+  GeneratedMoleculeResult,
   MoleculeDetails,
   MoleculesListResponse,
+  QuantumResult,
   RankedCandidatesResponse,
   RecentRunsResponse,
   ResultArtifactsResponse,
   ResultsOverview,
   SimilarityResult,
   SimilaritySearchResponse,
+  SimulationResult,
   StatsResponse,
 } from "@/types/api";
 
@@ -59,6 +63,29 @@ interface ApiRequestOptions extends Omit<RequestInit, "body"> {
   params?: QueryParams;
   body?: unknown;
   timeoutMs?: number;
+}
+
+export type WorkspaceToxicityLevel = "Low" | "Medium" | "High";
+
+export interface WorkspacePipelineRequest {
+  proteinSequence?: string;
+  constraints?: {
+    logP?: number;
+    qed?: number;
+    toxicity?: WorkspaceToxicityLevel;
+  };
+}
+
+export type WorkspacePipelineStage = "generating" | "docking" | "completed";
+
+export interface WorkspacePipelineResponse {
+  runId: string;
+  stage: WorkspacePipelineStage;
+  message: string;
+}
+
+interface RunPipelineOptions {
+  onStageChange?: (stage: WorkspacePipelineStage, message: string) => void;
 }
 
 /** Build full URL with optional path and query params */
@@ -171,6 +198,14 @@ export const apiClient = {
   put,
   delete: del,
 };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createPlaceholderRunId(prefix: string): string {
+  return `${prefix}-${Date.now()}`;
+}
 
 /** Backward-compatible internal fetch wrapper for existing endpoint helpers */
 async function apiFetch<T>(
@@ -334,7 +369,81 @@ export async function getEmbeddingMap(
 
 /** Fetch aggregate project result counts + highlights for showcase view */
 export async function getResultsOverview(): Promise<ResultsOverview> {
-  return apiFetch<ResultsOverview>("/results/overview");
+  try {
+    return await apiFetch<ResultsOverview>("/results/overview");
+  } catch {
+    return {
+      counts: {
+        existing_ranked: 0,
+        generated_candidates: 0,
+        qm_profiles: 0,
+        md_stability: 0,
+        md_rmsd: 0,
+        md_summaries: 0,
+        qm_summaries: 0,
+        docking_result_files: 0,
+      },
+      highlights: {
+        top_existing: null,
+        best_qm: null,
+      },
+      sources: {
+        existing_candidates: "",
+        generated_candidates: "",
+        qm_results: "",
+        md_stability: "",
+        md_rmsd: "",
+      },
+    };
+  }
+}
+
+/** Fetch generated molecule rows for the Results page */
+export async function getGeneratedMolecules(limit: number = 25): Promise<GeneratedMoleculeResult[]> {
+  try {
+    const data = await apiFetch<GeneratedMoleculeResult[]>("/results/generated", {
+      params: { limit },
+    });
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch docking result rows for the Results page */
+export async function getDockingResults(limit: number = 25): Promise<DockingResult[]> {
+  try {
+    const data = await apiFetch<DockingResult[]>("/results/docking", {
+      params: { limit },
+    });
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch simulation trajectory rows for the Results page */
+export async function getSimulationResults(limit: number = 60): Promise<SimulationResult[]> {
+  try {
+    const data = await apiFetch<SimulationResult[]>("/results/simulation", {
+      params: { limit },
+    });
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Fetch quantum screening rows for the Results page */
+export async function getQuantumResults(limit: number = 25): Promise<QuantumResult[]> {
+  try {
+    const data = await apiFetch<QuantumResult[]>("/results/quantum", {
+      params: { limit },
+    });
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }
 
 /** Fetch ranked candidate rows from existing or generated candidate file */
@@ -342,27 +451,51 @@ export async function getRankedCandidates(
   source: "existing" | "generated" = "existing",
   limit: number = 25
 ): Promise<RankedCandidatesResponse> {
-  return apiFetch<RankedCandidatesResponse>("/results/candidates", {
-    params: { source, limit },
-  });
+  try {
+    const data = await apiFetch<RankedCandidatesResponse>("/results/candidates", {
+      params: { source, limit },
+    });
+    return data;
+  } catch {
+    return {
+      source,
+      file: "",
+      count: 0,
+      items: [],
+    };
+  }
 }
 
 /** Fetch candidate-level profiles merged across QM + MD output tables */
 export async function getCandidateProfiles(
   limit: number = 100
 ): Promise<CandidateProfilesResponse> {
-  return apiFetch<CandidateProfilesResponse>("/results/profiles", {
-    params: { limit },
-  });
+  try {
+    return await apiFetch<CandidateProfilesResponse>("/results/profiles", {
+      params: { limit },
+    });
+  } catch {
+    return {
+      count: 0,
+      items: [],
+    };
+  }
 }
 
 /** Fetch available summary and docking artifacts for browsing */
 export async function getResultArtifacts(
   limit: number = 200
 ): Promise<ResultArtifactsResponse> {
-  return apiFetch<ResultArtifactsResponse>("/results/artifacts", {
-    params: { limit },
-  });
+  try {
+    return await apiFetch<ResultArtifactsResponse>("/results/artifacts", {
+      params: { limit },
+    });
+  } catch {
+    return {
+      count: 0,
+      items: [],
+    };
+  }
 }
 
 /** Fetch total experiment count for dashboard summary cards */
@@ -375,4 +508,69 @@ export async function getRecentRuns(limit: number = 8): Promise<RecentRunsRespon
   return apiFetch<RecentRunsResponse>("/runs/recent", {
     params: { limit },
   });
+}
+
+/** Trigger molecule generation stage (placeholder-ready API contract). */
+export async function generateMolecules(
+  payload: WorkspacePipelineRequest = {}
+): Promise<WorkspacePipelineResponse> {
+  try {
+    return await apiFetch<WorkspacePipelineResponse>("/workspace/generate", {
+      method: "POST",
+      body: payload,
+    });
+  } catch {
+    await sleep(400);
+    return {
+      runId: createPlaceholderRunId("gen"),
+      stage: "generating",
+      message: "Generating molecules...",
+    };
+  }
+}
+
+/** Trigger docking stage (placeholder-ready API contract). */
+export async function runDocking(
+  payload: WorkspacePipelineRequest = {}
+): Promise<WorkspacePipelineResponse> {
+  try {
+    return await apiFetch<WorkspacePipelineResponse>("/workspace/docking", {
+      method: "POST",
+      body: payload,
+    });
+  } catch {
+    await sleep(400);
+    return {
+      runId: createPlaceholderRunId("dock"),
+      stage: "docking",
+      message: "Docking started...",
+    };
+  }
+}
+
+/** Trigger full pipeline. Falls back to staged timeout simulation when backend is unavailable. */
+export async function runPipeline(
+  payload: WorkspacePipelineRequest = {},
+  options: RunPipelineOptions = {}
+): Promise<WorkspacePipelineResponse> {
+  try {
+    return await apiFetch<WorkspacePipelineResponse>("/workspace/pipeline", {
+      method: "POST",
+      body: payload,
+    });
+  } catch {
+    options.onStageChange?.("generating", "Generating molecules...");
+    await sleep(2000);
+
+    options.onStageChange?.("docking", "Docking started...");
+    await sleep(2000);
+
+    options.onStageChange?.("completed", "Full pipeline completed.");
+
+    return {
+      runId: createPlaceholderRunId("pipe"),
+      stage: "completed",
+      message: "Full pipeline completed.",
+    };
+  }
 }

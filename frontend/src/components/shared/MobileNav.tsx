@@ -7,6 +7,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/molecules", label: "Molecules" },
   { href: "/chemical-space", label: "Chemical Space" },
+  { href: "/visualization", label: "Visualization" },
   { href: "/results", label: "Results" },
   { href: "/similarity-search", label: "Similarity Search" },
 ] as const;
