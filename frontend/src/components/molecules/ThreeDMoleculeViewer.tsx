@@ -122,7 +122,6 @@ export default function ThreeDMoleculeViewer({
         setError(null);
         setIsReady(false);
 
-        // @ts-expect-error 3Dmol.js has no official TypeScript types here.
         const imported3Dmol = await import("3dmol");
         const $3DmolMod = imported3Dmol.default || imported3Dmol;
 

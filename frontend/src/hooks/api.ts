@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { del, get, post, put } from "@/services";
 
 type MutationMethod = "POST" | "PUT" | "DELETE";
@@ -52,8 +52,6 @@ export function useFetch<TData>(
   const [error, setError] = useState<Error | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const paramsKey = useMemo(() => JSON.stringify(params ?? {}), [params]);
-
   const refetch = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -71,7 +69,7 @@ export function useFetch<TData>(
     } finally {
       setIsLoading(false);
     }
-  }, [path, paramsKey]);
+  }, [params, path]);
 
   useEffect(() => {
     if (!enabled) {

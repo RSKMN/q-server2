@@ -108,6 +108,18 @@ export function GeneratedMoleculesTable({
     [selectedMoleculeId, sortedRows]
   );
 
+  const csvRows = useMemo(
+    () =>
+      pagedRows.map((molecule) => ({
+        "Molecule ID": molecule.molecule_id,
+        SMILES: molecule.smiles,
+        "Molecular Weight": formatNumber(molecule.molecular_weight),
+        LogP: formatNumber(molecule.logp),
+        QED: formatNumber(molecule.qed, 3),
+      })),
+    [pagedRows]
+  );
+
   if (items.length === 0) {
     return (
       <ResultsEmptyState description="Run the pipeline from Workspace to populate generated molecules and start review." />
@@ -122,18 +134,6 @@ export function GeneratedMoleculesTable({
       />
     );
   }
-
-  const csvRows = useMemo(
-    () =>
-      pagedRows.map((molecule) => ({
-        "Molecule ID": molecule.molecule_id,
-        SMILES: molecule.smiles,
-        "Molecular Weight": formatNumber(molecule.molecular_weight),
-        LogP: formatNumber(molecule.logp),
-        QED: formatNumber(molecule.qed, 3),
-      })),
-    [pagedRows]
-  );
 
   if (loading) {
     return <TableSkeleton columns={5} rows={6} />;

@@ -162,7 +162,8 @@ export default function ChemicalSpaceScatter({
             if (!onPointSelect) return;
 
             const clicked = event.points?.[0];
-            const fromId = typeof clicked?.id === "string" ? clicked.id : null;
+            const clickedId = (clicked as { id?: unknown } | undefined)?.id;
+            const fromId = typeof clickedId === "string" ? clickedId : null;
             const fromCustom =
               Array.isArray(clicked?.customdata) && typeof clicked.customdata[0] === "string"
                 ? clicked.customdata[0]
