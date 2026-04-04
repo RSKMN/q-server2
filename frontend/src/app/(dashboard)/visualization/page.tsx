@@ -29,10 +29,10 @@ function SectionHeading({
 }) {
   return (
     <div className="space-y-1.5">
-      <p className="viz-subtitle text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300/80">
+      <p className="viz-subtitle text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700/80 dark:text-cyan-300/80">
         {eyebrow}
       </p>
-      <h2 className="viz-title text-xl tracking-tight text-slate-100">{title}</h2>
+      <h2 className="viz-title text-xl tracking-tight text-slate-900 dark:text-slate-100">{title}</h2>
       <p className="viz-subtitle max-w-3xl text-sm leading-6">{description}</p>
     </div>
   );
@@ -158,15 +158,15 @@ export default function VisualizationPage() {
 
   return (
     <div className="fade-in-soft mx-auto flex w-full max-w-[1480px] flex-col gap-7 pb-12">
-      <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/55 to-slate-950/40 p-5 shadow-[0_18px_50px_rgba(2,6,23,0.35)]">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-100 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:from-slate-900/55 dark:to-slate-950/40 dark:shadow-[0_18px_50px_rgba(2,6,23,0.35)]">
         <div>
-          <h1 className="viz-title text-3xl tracking-tight text-slate-100">Visualization</h1>
+          <h1 className="viz-title text-3xl tracking-tight text-slate-900 dark:text-slate-100">Visualization</h1>
           <p className="viz-subtitle mt-2 max-w-3xl text-sm leading-6">
             Review molecular structure, embedding topology, and simulation stability in a single stacked workspace.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+        <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-400">
           <span className="viz-chip rounded-full px-3 py-1">
             3D structure rendering
           </span>
@@ -195,19 +195,19 @@ export default function VisualizationPage() {
                 <div className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-3">
                     {Array.from({ length: 3 }).map((_, idx) => (
-                      <div key={idx} className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
+                      <div key={idx} className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-slate-950/50">
                         <div className="h-3 w-20 rounded-md bg-white/10 skeleton-shimmer" />
                         <div className="mt-2 h-4 w-24 rounded-md bg-white/10 skeleton-shimmer" />
                       </div>
                     ))}
                   </div>
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 p-2">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-2 dark:border-white/10 dark:bg-slate-950/50">
                     <div className="h-[560px] rounded-xl bg-white/10 skeleton-shimmer" />
                   </div>
                 </div>
                 <div className="space-y-4">
                   {Array.from({ length: 2 }).map((_, idx) => (
-                    <div key={idx} className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                    <div key={idx} className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/50">
                       <div className="h-3 w-24 rounded-md bg-white/10 skeleton-shimmer" />
                       <div className="mt-3 h-3 w-full rounded-md bg-white/10 skeleton-shimmer" />
                       <div className="mt-2 h-3 w-4/5 rounded-md bg-white/10 skeleton-shimmer" />
@@ -219,33 +219,33 @@ export default function VisualizationPage() {
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
                 <div className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-slate-950/50">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Molecule
                       </p>
-                      <p className="mt-2 font-mono text-sm font-semibold text-slate-100">
+                      <p className="mt-2 font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {selectedMolecule.molecule_id}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-slate-950/50">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Dataset
                       </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-100">
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {selectedMolecule.dataset}
                       </p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3">
+                    <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-slate-950/50">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                         Properties
                       </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-100">
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
                         MW {selectedMolecule.mw.toFixed(1)} | QED {selectedMolecule.qed.toFixed(2)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 p-2">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-2 dark:border-white/10 dark:bg-slate-950/50">
                     <ThreeDMoleculeViewer
                       title={selectedMolecule.molecule_id}
                       subtitle="3D structure preview synchronized with the selected molecule."
@@ -258,33 +258,33 @@ export default function VisualizationPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/50">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                       Selected sample
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                       The current 3D viewer is linked to {selectedMolecule.molecule_id}. Select a point in the chemical space view to update this molecule and compare its neighborhood.
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/50">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
                       Quick metadata
                     </p>
-                    <dl className="mt-3 grid gap-3 text-sm text-slate-300">
+                    <dl className="mt-3 grid gap-3 text-sm text-slate-600 dark:text-slate-300">
                       <div className="flex items-center justify-between gap-3">
                         <dt className="text-slate-500">SMILES</dt>
-                        <dd className="text-right font-mono text-xs text-slate-200">
+                        <dd className="text-right font-mono text-xs text-slate-700 dark:text-slate-200">
                           {selectedMolecule.smiles}
                         </dd>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <dt className="text-slate-500">LogP</dt>
-                        <dd className="text-slate-200">{selectedMolecule.logp.toFixed(2)}</dd>
+                        <dd className="text-slate-700 dark:text-slate-200">{selectedMolecule.logp.toFixed(2)}</dd>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <dt className="text-slate-500">QED</dt>
-                        <dd className="text-slate-200">{selectedMolecule.qed.toFixed(2)}</dd>
+                        <dd className="text-slate-700 dark:text-slate-200">{selectedMolecule.qed.toFixed(2)}</dd>
                       </div>
                     </dl>
                   </div>
@@ -306,7 +306,7 @@ export default function VisualizationPage() {
         }
         content={
           <div className="space-y-5">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
               <span className="viz-chip rounded-full px-3 py-1">
                 {embeddings.length} points loaded (placeholder)
               </span>
@@ -314,7 +314,7 @@ export default function VisualizationPage() {
                 Color by {chemicalColorMode === "activity" ? "Activity" : "Drug-likeness"}
               </span>
               {chemicalSpaceSelectedPoint ? (
-                <span className="viz-chip active rounded-full px-3 py-1 text-cyan-100">
+                <span className="viz-chip active rounded-full px-3 py-1 text-cyan-900 dark:text-cyan-100">
                   Selected {chemicalSpaceSelectedPoint.molecule_id} | A {chemicalSpaceSelectedPoint.activity.toFixed(2)} | DL {chemicalSpaceSelectedPoint.drugLikeness.toFixed(2)}
                 </span>
               ) : (
@@ -339,7 +339,7 @@ export default function VisualizationPage() {
                     className={`viz-chip rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                       isActive
                         ? "active"
-                        : "hover:bg-white/10"
+                        : "hover:bg-slate-100 dark:hover:bg-white/10"
                     }`}
                   >
                     {option.label}
@@ -348,7 +348,7 @@ export default function VisualizationPage() {
               })}
             </div>
 
-            <div className="viz-glow-soft overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+            <div className="viz-glow-soft overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-950/50">
               <ChemicalSpaceScatter
                 data={embeddings}
                 colorMode={chemicalColorMode}
@@ -356,7 +356,7 @@ export default function VisualizationPage() {
                 onPointSelect={handleChemicalPointSelect}
                 isLoading={isLoadingVisualization}
               />
-              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                 Hover for molecule details. Scroll to zoom, drag to pan, and click a point to highlight/select it.
               </div>
             </div>
@@ -388,7 +388,7 @@ export default function VisualizationPage() {
                       className={`viz-chip rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                         isActive
                           ? "active"
-                          : "hover:bg-white/10 hover:text-white"
+                          : "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
                       }`}
                     >
                       {id}
@@ -396,7 +396,7 @@ export default function VisualizationPage() {
                   );
                 })
               ) : (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
                   No simulation trajectories loaded yet
                 </span>
               )}
@@ -411,7 +411,7 @@ export default function VisualizationPage() {
             ) : isLoadingVisualization ? (
               <SimulationViewer moleculeId={selectedMoleculeId} frames={[]} isLoading />
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-slate-400">
+              <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-400">
                 No simulation trajectory matched the selected molecule yet.
               </div>
             )}

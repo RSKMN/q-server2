@@ -26,9 +26,9 @@ function statusFromFrames(values: number[]) {
   const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
   const peak = Math.max(...values);
 
-  if (avg < 1.8 && peak < 2.2) return { label: "Stable", className: "border-emerald-300/40 bg-emerald-500/15 text-emerald-100" };
-  if (avg < 2.2 && peak < 2.8) return { label: "Moderate", className: "border-amber-300/40 bg-amber-500/15 text-amber-100" };
-  return { label: "Unstable", className: "border-rose-300/40 bg-rose-500/15 text-rose-100" };
+  if (avg < 1.8 && peak < 2.2) return { label: "Stable", className: "border-emerald-300/70 bg-emerald-100 text-emerald-800 dark:border-emerald-300/40 dark:bg-emerald-500/15 dark:text-emerald-100" };
+  if (avg < 2.2 && peak < 2.8) return { label: "Moderate", className: "border-amber-300/70 bg-amber-100 text-amber-800 dark:border-amber-300/40 dark:bg-amber-500/15 dark:text-amber-100" };
+  return { label: "Unstable", className: "border-rose-300/70 bg-rose-100 text-rose-800 dark:border-rose-300/40 dark:bg-rose-500/15 dark:text-rose-100" };
 }
 
 export default function SimulationViewer({ moleculeId, frames, isLoading = false }: SimulationViewerProps) {
@@ -65,18 +65,18 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
   if (isLoading) {
     return (
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_280px]">
-        <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/50">
           <div className="h-4 w-36 rounded-md bg-white/10 skeleton-shimmer" />
           <div className="mt-2 h-3 w-56 rounded-md bg-white/10 skeleton-shimmer" />
           <div className="mt-4 h-[320px] rounded-xl bg-white/10 skeleton-shimmer" />
           <div className="mt-3 h-2 w-full rounded-md bg-white/10 skeleton-shimmer" />
         </div>
         <div className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/50">
             <div className="h-4 w-44 rounded-md bg-white/10 skeleton-shimmer" />
             <div className="mt-3 h-[180px] rounded-xl bg-white/10 skeleton-shimmer" />
           </div>
-          <div className="rounded-2xl border border-white/10 bg-slate-950/50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/50">
             <div className="h-4 w-32 rounded-md bg-white/10 skeleton-shimmer" />
             <div className="mt-3 h-3 w-40 rounded-md bg-white/10 skeleton-shimmer" />
             <div className="mt-2 h-3 w-48 rounded-md bg-white/10 skeleton-shimmer" />
@@ -89,7 +89,7 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
 
   if (!sortedFrames.length) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-slate-400">
+      <div className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-slate-950/50 dark:text-slate-400">
         No simulation trajectory available for this molecule.
       </div>
     );
@@ -123,7 +123,7 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
       <div className="viz-surface rounded-2xl p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="viz-title text-sm text-slate-100">RMSD vs Time</p>
+            <p className="viz-title text-sm text-slate-900 dark:text-slate-100">RMSD vs Time</p>
             <p className="viz-subtitle mt-1 text-xs">
               {moleculeId} | Frame {activeIndex + 1}/{points.length} | Time {activePoint.time} ns
             </p>
@@ -131,13 +131,13 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
           <button
             type="button"
             onClick={() => setIsPlaying((current) => !current)}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-cyan-300/40 bg-cyan-500/10 px-4 text-xs font-semibold text-cyan-100 transition-all duration-200 hover:-translate-y-[1px] hover:bg-cyan-500/20"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-cyan-300/60 bg-cyan-100 px-4 text-xs font-semibold text-cyan-800 transition-all duration-200 hover:-translate-y-[1px] hover:bg-cyan-200 dark:border-cyan-300/40 dark:bg-cyan-500/10 dark:text-cyan-100 dark:hover:bg-cyan-500/20"
           >
             {isPlaying ? "Pause" : "Play"}
           </button>
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-slate-900/80">
+        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900/80">
           <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-[320px] w-full">
             <defs>
               <linearGradient id="simulationFill" x1="0" x2="0" y1="0" y2="1">
@@ -161,7 +161,7 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
                     stroke="rgba(148,163,184,0.14)"
                     strokeDasharray="4 6"
                   />
-                  <text x={10} y={y + 4} fill="rgba(226,232,240,0.55)" fontSize="11">
+                  <text x={10} y={y + 4} fill="rgba(71,85,105,0.7)" fontSize="11">
                     {gridValue.toFixed(1)}
                   </text>
                 </g>
@@ -243,10 +243,10 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
           </p>
           <div className="mt-3 flex min-h-[180px] items-center justify-center rounded-xl border border-dashed border-cyan-400/35 bg-slate-900/70 px-4 text-center">
             <div>
-              <p className="text-sm font-medium text-slate-200">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
                 Molecular trajectory animation placeholder
               </p>
-              <p className="mt-2 text-xs leading-5 text-slate-400">
+              <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
                 This area is reserved for 3D trajectory playback and will be synchronized
                 with RMSD frame selection and play/pause controls in a future integration.
               </p>
@@ -266,20 +266,20 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
           <dl className="mt-3 space-y-3 text-sm">
             <div className="flex items-center justify-between gap-3">
               <dt className="text-slate-500">Average RMSD</dt>
-              <dd className="text-slate-100">{formatRmsd(average)}</dd>
+              <dd className="text-slate-700 dark:text-slate-100">{formatRmsd(average)}</dd>
             </div>
             <div className="flex items-center justify-between gap-3">
               <dt className="text-slate-500">Peak RMSD</dt>
-              <dd className="text-slate-100">{formatRmsd(peak)}</dd>
+              <dd className="text-slate-700 dark:text-slate-100">{formatRmsd(peak)}</dd>
             </div>
             <div className="flex items-center justify-between gap-3">
               <dt className="text-slate-500">Current RMSD</dt>
-              <dd className="text-slate-100">{formatRmsd(activePoint.rmsd)}</dd>
+              <dd className="text-slate-700 dark:text-slate-100">{formatRmsd(activePoint.rmsd)}</dd>
             </div>
           </dl>
         </div>
 
-        <div className="viz-surface rounded-2xl p-4 text-sm text-slate-300">
+        <div className="viz-surface rounded-2xl p-4 text-sm text-slate-600 dark:text-slate-300">
           Frame playback helps inspect transient drift phases and compare short-term fluctuations against global trajectory stability.
         </div>
       </div>
