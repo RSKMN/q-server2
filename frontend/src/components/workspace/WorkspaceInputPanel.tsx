@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui";
 import { useWorkspaceStore } from "@/store";
 import {
@@ -16,18 +16,80 @@ const toxicityOptions = [
 ] as const;
 
 export default function WorkspaceInputPanel() {
-  const [proteinSequence, setProteinSequence] = useState(
-    "MNSRSLVQEP...GQGAFGTVYKGLWIPEGEK",
-  );
-  const [logP, setLogP] = useState(2.4);
-  const [qed, setQed] = useState(0.78);
-  const [toxicity, setToxicity] = useState("Low");
+  const workspaceInput = useWorkspaceStore((s) => s.workspaceInput);
+  const setWorkspaceInput = useWorkspaceStore((s) => s.setWorkspaceInput);
+
+  const [proteinSequence, setProteinSequence] = useState(workspaceInput.protein);
+  const [logP, setLogP] = useState(Number(workspaceInput.constraints.logP ?? 2.4));
+  const [qed, setQed] = useState(Number(workspaceInput.constraints.qed ?? 0.78));
+  const [toxicity, setToxicity] = useState(String(workspaceInput.constraints.toxicity ?? "Low"));
 
   const pipelineState = useWorkspaceStore((s) => s.pipelineState);
   const isPipelineRunning =
     pipelineState === "generating" ||
     pipelineState === "docking" ||
     pipelineState === "running_full_pipeline";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const rerunInput = window.sessionStorage.getItem("qdrugforge.workspace.rerunInput");
+    if (!rerunInput) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(rerunInput) as {
+        protein?: string;
+        constraints?: Record<string, string | number | boolean>;
+      };
+
+      if (parsed.protein) {
+        setProteinSequence(parsed.protein);
+      }
+
+      if (parsed.constraints) {
+        if (typeof parsed.constraints.logP === "number") {
+          setLogP(parsed.constraints.logP);
+        }
+        if (typeof parsed.constraints.qed === "number") {
+          setQed(parsed.constraints.qed);
+        }
+        if (typeof parsed.constraints.toxicity === "string") {
+          setToxicity(parsed.constraints.toxicity);
+        }
+      }
+
+      setWorkspaceInput({
+        protein: parsed.protein ?? proteinSequence,
+        constraints: {
+          logP: typeof parsed.constraints?.logP === "number" ? parsed.constraints.logP : logP,
+          qed: typeof parsed.constraints?.qed === "number" ? parsed.constraints.qed : qed,
+          toxicity:
+            typeof parsed.constraints?.toxicity === "string"
+              ? parsed.constraints.toxicity
+              : toxicity,
+        },
+      });
+    } catch {
+      // Ignore invalid session payload.
+    } finally {
+      window.sessionStorage.removeItem("qdrugforge.workspace.rerunInput");
+    }
+  }, [logP, proteinSequence, qed, setWorkspaceInput, toxicity]);
+
+  useEffect(() => {
+    setWorkspaceInput({
+      protein: proteinSequence,
+      constraints: {
+        logP,
+        qed,
+        toxicity,
+      },
+    });
+  }, [logP, proteinSequence, qed, setWorkspaceInput, toxicity]);
 
   return (
     <Card className="border-slate-800 bg-slate-900/80 shadow-xl shadow-slate-950/40 transition-all duration-300">

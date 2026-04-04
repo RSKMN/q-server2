@@ -26,15 +26,46 @@ import type {
   StatsResponse,
 } from "@/types/api";
 
-/** Base URL for API requests. Override via NEXT_PUBLIC_API_URL env var. */
-const API_BASE_URL =
-  (typeof process !== "undefined" &&
-    process.env?.NEXT_PUBLIC_API_URL) ||
-  "http://localhost:8000";
+/** Normalize base URL by trimming whitespace and trailing slashes. */
+function normalizeBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, "");
+}
+
+/** Resolve API base URL for both browser and server runtime contexts. */
+function resolveApiBaseUrl(): string {
+  const configured =
+    typeof process !== "undefined"
+      ? process.env?.NEXT_PUBLIC_API_URL
+      : undefined;
+
+  if (configured && configured.trim()) {
+    return normalizeBaseUrl(configured);
+  }
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return normalizeBaseUrl(window.location.origin);
+  }
+
+  const hostFromEnv =
+    (typeof process !== "undefined" &&
+      (process.env?.NEXT_PUBLIC_SITE_URL || process.env?.VERCEL_URL)) ||
+    "";
+  if (hostFromEnv) {
+    const withProtocol = hostFromEnv.startsWith("http")
+      ? hostFromEnv
+      : `https://${hostFromEnv}`;
+    return normalizeBaseUrl(withProtocol);
+  }
+
+  return "";
+}
+
+/** Base URL for API requests; configurable via NEXT_PUBLIC_API_URL. */
+const API_BASE_URL = resolveApiBaseUrl();
 
 const API_TIMEOUT_MS =
   (typeof process !== "undefined" &&
-    Number(process.env?.NEXT_PUBLIC_API_TIMEOUT_MS)) ||
+    Number(process.env?.NEXT_PUBLIC_API_TIMEOUT_MS || process.env?.NEXT_PUBLIC_API_TIMEOUT)) ||
   10000;
 
 const DEFAULT_DATASETS: Dataset[] = ["ZINC250k", "ChEMBL", "PDBbind", "DrugBank"];
@@ -55,6 +86,39 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+}
+
+/** Convert technical API errors into concise user-friendly messages. */
+export function toFriendlyErrorMessage(
+  error: unknown,
+  fallback = "We could not load this data right now. Please try again."
+): string {
+  if (error instanceof ApiError) {
+    if (error.status === 408) {
+      return "The request took too long. Please try again.";
+    }
+    if (error.status === 401 || error.status === 403) {
+      return "Your session needs attention. Please sign in again and retry.";
+    }
+    if (error.status === 404) {
+      return "We could not find the requested data.";
+    }
+    if (error.status && error.status >= 500) {
+      return "The server is busy right now. Please try again shortly.";
+    }
+    if (error.status && error.status >= 400) {
+      return "Some data could not be loaded. Please retry.";
+    }
+  }
+
+  if (error instanceof Error) {
+    if (error.message.toLowerCase().includes("network")) {
+      return "Connection issue detected. Please check your network and retry.";
+    }
+    return fallback;
+  }
+
+  return fallback;
 }
 
 type QueryParams = Record<string, string | number | boolean | undefined | null>;
@@ -93,15 +157,34 @@ function buildUrl(
   path: string,
   params?: QueryParams
 ): string {
-  const url = new URL(path.replace(/^\//, ""), API_BASE_URL);
+  const endpointPath = `/${path.replace(/^\/+/, "")}`;
+
+  if (!API_BASE_URL) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          searchParams.set(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return query ? `${endpointPath}?${query}` : endpointPath;
+  }
+
+  const base = new URL(`${API_BASE_URL}/`);
+  const normalizedEndpoint = path.replace(/^\/+/, "");
+  const basePath = base.pathname.replace(/\/+$/, "");
+  base.pathname = `${basePath}/${normalizedEndpoint}`.replace(/\/+/g, "/");
+
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.set(key, String(value));
+        base.searchParams.set(key, String(value));
       }
     });
   }
-  return url.toString();
+  return base.toString();
 }
 
 /** Core request helper with timeout, JSON parsing, and normalized API errors */

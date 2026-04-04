@@ -31,6 +31,10 @@ import { SimulationResultsSection } from "./components/simulation-results-sectio
 import { QuantumResultsSection } from "./components/quantum-results-section";
 import { SectionTabs } from "./components/section-tabs";
 import { type ResultSection } from "./components/results-types";
+import { ResultsPageSkeleton } from "@/components/shared/skeletons";
+import { ApiErrorState } from "@/components/shared/states";
+import { EmptyState } from "@/components/shared/states";
+import { toFriendlyErrorMessage } from "@/services/api";
 
 function filterArtifacts(items: ResultArtifact[], keywords: string[]): ResultArtifact[] {
   return items.filter((artifact) => {
@@ -53,6 +57,7 @@ export default function ResultsPage() {
   const [artifacts, setArtifacts] = useState<ResultArtifactsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -90,7 +95,7 @@ export default function ResultsPage() {
         setArtifacts(artifactsData);
       } catch (err) {
         if (!active) return;
-        setError(err instanceof Error ? err.message : "Failed to load results");
+        setError(toFriendlyErrorMessage(err, "Results are temporarily unavailable."));
       } finally {
         if (active) {
           setLoading(false);
@@ -102,7 +107,11 @@ export default function ResultsPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloadTick]);
+
+  function handleRetry() {
+    setReloadTick((prev) => prev + 1);
+  }
 
   function handleClearFilters() {
     setSearchQuery("");
@@ -133,51 +142,69 @@ export default function ResultsPage() {
     [artifacts]
   );
 
+  const hasAnyResults =
+    generatedMolecules.length > 0 ||
+    dockingResults.length > 0 ||
+    simulationResults.length > 0 ||
+    quantumResults.length > 0 ||
+    (filteredRanked?.items?.length ?? 0) > 0;
+
   return (
-    <div className="relative flex flex-col gap-6 overflow-hidden pb-8">
+    <div className="page-shell ui-fade-in relative overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-500/10 to-transparent" />
 
-      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="ui-state-transition relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-100 sm:text-3xl">
+          <h1 className="page-title text-slate-100 sm:text-3xl">
             Results Research Dashboard
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="page-subtitle mt-1 text-slate-400">
             Consolidated evidence across candidate generation, docking, simulation, and quantum analysis.
           </p>
         </div>
       </div>
 
-      <SectionTabs activeSection={activeSection} onChange={setActiveSection} />
+      <div className="ui-state-transition">
+        <SectionTabs activeSection={activeSection} onChange={setActiveSection} />
+      </div>
 
-      <ResultsFilterBar
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        scoreBand={scoreBand}
-        onScoreBandChange={setScoreBand}
-        stabilityBand={stabilityBand}
-        onStabilityBandChange={setStabilityBand}
-        onClear={handleClearFilters}
-      />
+      <div className="ui-state-transition">
+        <ResultsFilterBar
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          scoreBand={scoreBand}
+          onScoreBandChange={setScoreBand}
+          stabilityBand={stabilityBand}
+          onStabilityBandChange={setStabilityBand}
+          onClear={handleClearFilters}
+        />
+      </div>
 
       {error ? (
-        <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {error}
-        </div>
+        <ApiErrorState
+          error={error}
+          onRetry={handleRetry}
+          title="Results are taking a little longer"
+          fallbackMessage="We could not load the latest results yet."
+        />
       ) : null}
 
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, idx) => (
-            <div key={idx} className="h-24 rounded-xl bg-slate-900/70 skeleton-shimmer" />
-          ))}
-        </div>
-      ) : null}
+      {loading ? <ResultsPageSkeleton /> : null}
 
       {overview ? <MetricGrid items={metricItems} /> : null}
 
+      {!loading && !error && !hasAnyResults ? (
+        <EmptyState
+          title="No results available"
+          description="Run pipeline to see data and compare candidates across stages."
+          ctaLabel="Go to Workspace"
+          ctaHref="/workspace"
+          className="min-h-[260px]"
+        />
+      ) : null}
+
       {!error ? (
-        <div className="space-y-4">
+        <div className="ui-state-transition space-y-4">
           {activeSection === "generated" ? (
             <GeneratedMoleculesTable
               items={generatedMolecules}

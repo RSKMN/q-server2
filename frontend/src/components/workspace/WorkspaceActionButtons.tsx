@@ -2,9 +2,10 @@
 
 import { useRef } from "react";
 import { Button, Card, CardContent, CardHeader } from "@/components/ui";
-import { generateMolecules, runDocking, runPipeline } from "@/services";
+import { createExperiment, generateMolecules, runDocking, runPipeline } from "@/services";
 import { useWorkspaceStore } from "@/store";
 import type { IntermediateResultItem } from "@/store/workspaceStore";
+import type { ExperimentRecord } from "@/types";
 
 type WorkspaceAction = "generate" | "docking" | "pipeline";
 
@@ -46,6 +47,7 @@ export default function WorkspaceActionButtons() {
   const clearLogs = useWorkspaceStore((s) => s.clearLogs);
   const appendLog = useWorkspaceStore((s) => s.appendLog);
   const setIntermediateResults = useWorkspaceStore((s) => s.setIntermediateResults);
+  const workspaceInput = useWorkspaceStore((s) => s.workspaceInput);
 
   const pipelineInProgress =
     lastAction === "pipeline" &&
@@ -176,6 +178,28 @@ export default function WorkspaceActionButtons() {
           progress: 100,
         }));
         setIntermediateResults(finalizedPipelineResults);
+
+        const topHit = finalizedPipelineResults[1]?.value ?? "Pending";
+        const completedExperiment: ExperimentRecord = {
+          id: `EXP-${Date.now()}`,
+          name: "Workspace Full Pipeline Run",
+          input: workspaceInput,
+          status: "Completed",
+          createdAt: new Date().toISOString(),
+          pipelineStages: {
+            generated: "completed",
+            docking: "completed",
+            simulation: "completed",
+            quantum: "completed",
+          },
+          resultsSummary: {
+            overview: "Pipeline completed successfully from Workspace action controls.",
+            topHit,
+            hitRate: 10.4,
+            shortlistedCandidates: 20,
+          },
+        };
+        await createExperiment(completedExperiment);
         setCompleted();
         return;
       }

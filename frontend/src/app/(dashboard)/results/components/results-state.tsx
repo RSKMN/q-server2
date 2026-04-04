@@ -1,3 +1,5 @@
+import { EmptyState } from "@/components/shared/states";
+
 interface ResultsEmptyStateProps {
   title?: string;
   description?: string;
@@ -8,10 +10,13 @@ export function ResultsEmptyState({
   description = "Run the pipeline from Workspace to populate this section.",
 }: ResultsEmptyStateProps) {
   return (
-    <section className="rounded-xl border border-dashed border-white/15 bg-slate-900/60 p-5 text-sm text-slate-300 transition-opacity duration-300">
-      <h2 className="text-base font-semibold text-slate-100">{title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
-    </section>
+    <EmptyState
+      title={title}
+      description={description}
+      ctaLabel="Go to Workspace"
+      ctaHref="/workspace"
+      className="min-h-[220px]"
+    />
   );
 }
 

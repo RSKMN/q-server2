@@ -16,7 +16,7 @@ interface InsightCardProps {
 
 function InsightCard({ label, value, note }: InsightCardProps) {
   return (
-    <div className="rounded-lg border border-slate-200/80 bg-slate-50 px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-100/80 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900/90">
+    <div className="ui-hover-lift ui-state-transition rounded-lg border border-slate-200/80 bg-slate-50 px-4 py-3 hover:bg-slate-100/80 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-900/90">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
         {label}
       </p>
@@ -34,7 +34,7 @@ export default function DatasetInsightsPanel({
   const summaryValue = `${Number(summary.avg_mw).toFixed(1)} MW | ${Number(summary.avg_logp).toFixed(2)} LogP | ${Number(summary.avg_qed).toFixed(2)} QED`;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg transition-all duration-200 hover:shadow-xl dark:border-[#1e293b] dark:bg-[#0b0f19]">
+    <section className="ui-fade-in ui-hover-lift ui-state-transition rounded-xl border border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl dark:border-[#1e293b] dark:bg-[#0b0f19]">
       <div className="mb-4">
         <h2 className="text-sm font-semibold tracking-[0.01em] text-slate-900 dark:text-slate-100">
           Dataset Insights

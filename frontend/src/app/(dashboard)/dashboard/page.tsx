@@ -11,11 +11,12 @@ import { useUiStore } from "@/store";
 import type { RecentRun, StatsResponse } from "@/types/api";
 import DatasetSelector from "@/components/dashboard/DatasetSelector";
 import SummaryCards from "@/components/dashboard/SummaryCards";
-import ChartSkeleton from "@/components/dashboard/ChartSkeleton";
 import ActivityPanel from "@/components/dashboard/ActivityPanel";
 import ChartsSection from "@/components/dashboard/Charts";
 import DatasetInsightsPanel from "@/components/dashboard/DatasetInsightsPanel";
-import StatCardSkeleton from "@/components/dashboard/StatCardSkeleton";
+import { DashboardPageSkeleton } from "@/components/shared/skeletons";
+import { ApiErrorState } from "@/components/shared/states";
+import { toFriendlyErrorMessage } from "@/services/api";
 
 export default function DashboardPage() {
   const selectedDataset = useUiStore((s) => s.selectedDataset);
@@ -34,6 +35,7 @@ export default function DashboardPage() {
 
   const activeDatasetLabel = selectedDataset ?? stats?.dataset ?? "All Datasets";
   const hasApiError = Boolean(error || experimentsError || recentRunsError);
+  const dashboardError = error || experimentsError || recentRunsError;
 
   function handleRetry() {
     setReloadTick((prev) => prev + 1);
@@ -57,7 +59,7 @@ export default function DashboardPage() {
       })
       .catch((err) => {
         if (active) {
-          setError(err.message || "Failed to load dashboard data");
+          setError(toFriendlyErrorMessage(err, "Dashboard data is temporarily unavailable."));
           setLoading(false);
         }
       });
@@ -84,7 +86,7 @@ export default function DashboardPage() {
       .catch((err) => {
         if (active) {
           setExperimentCount(null);
-          setExperimentsError(err?.message || "Failed to load experiment count");
+          setExperimentsError(toFriendlyErrorMessage(err, "Experiment metrics are not available right now."));
           setExperimentsLoading(false);
         }
       });
@@ -99,7 +101,7 @@ export default function DashboardPage() {
       .catch((err) => {
         if (active) {
           setRecentRuns([]);
-          setRecentRunsError(err?.message || "Failed to load recent runs");
+          setRecentRunsError(toFriendlyErrorMessage(err, "Recent activity could not be loaded."));
           setRecentRunsLoading(false);
         }
       });
@@ -110,13 +112,13 @@ export default function DashboardPage() {
   }, [selectedDataset, reloadTick]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col space-y-8 pb-10">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="page-shell ui-fade-in">
+      <div className="ui-state-transition flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="page-title text-slate-900 dark:text-slate-100">
             Dashboard
           </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+          <p className="page-subtitle mt-2 text-slate-500 dark:text-slate-400">
             Dataset statistics and molecular properties
           </p>
         </div>
@@ -128,70 +130,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {loading && (
-        <div className="space-y-6 fade-in-soft">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-lg dark:border-[#1e293b] dark:bg-[#0b0f19]">
-            <div className="h-4 w-32 rounded-md bg-slate-200 skeleton-shimmer" />
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <div className="h-3 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
-                  <div className="mt-2 h-4 w-32 rounded-md bg-slate-200 skeleton-shimmer" />
-                  <div className="mt-2 h-3 w-24 rounded-md bg-slate-200 skeleton-shimmer" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <StatCardSkeleton key={idx} />
-            ))}
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="grid gap-6 lg:grid-cols-2">
-              <ChartSkeleton />
-              <ChartSkeleton titleWidthClass="w-28" />
-            </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-[#1e293b] dark:bg-[#0b0f19]">
-              <div className="h-4 w-24 rounded-md bg-slate-200 skeleton-shimmer" />
-              <div className="mt-6 space-y-3">
-                {Array.from({ length: 4 }).map((_, idx) => (
-                  <div key={idx} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <div className="h-3 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
-                    <div className="mt-2 h-4 w-40 rounded-md bg-slate-200 skeleton-shimmer" />
-                    <div className="mt-2 h-3 w-32 rounded-md bg-slate-200 skeleton-shimmer" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {loading ? <DashboardPageSkeleton /> : null}
 
       {hasApiError && !loading && (
-        <div className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-900/10 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-red-600 dark:text-red-400">
-              {error || experimentsError || recentRunsError || "Failed to load dashboard data."}
-            </p>
-            <p className="mt-1 text-xs text-red-500/90 dark:text-red-300/90">
-              Showing available data where possible.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleRetry}
-            className="inline-flex items-center justify-center rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
-          >
-            Retry
-          </button>
-        </div>
+        <ApiErrorState
+          error={dashboardError}
+          onRetry={handleRetry}
+          title="Dashboard is partially unavailable"
+          fallbackMessage="Some dashboard sections are temporarily unavailable."
+        />
       )}
 
       {stats && !loading && (
-        <div className="space-y-8 fade-in-soft">
+        <div className="space-y-8 fade-in-soft ui-state-transition">
           <DatasetInsightsPanel
             totalDatasets={totalDatasets}
             activeDataset={activeDatasetLabel}

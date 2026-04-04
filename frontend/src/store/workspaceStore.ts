@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ExperimentInput } from "@/types";
 
 export type PipelineState =
   | "idle"
@@ -21,6 +22,7 @@ export interface IntermediateResultItem {
 interface WorkspaceStoreState {
   pipelineState: PipelineState;
   lastAction: PipelineAction | null;
+  workspaceInput: ExperimentInput;
   errorMessage: string | null;
   pipelineLogs: string[];
   intermediateResults: IntermediateResultItem[];
@@ -32,6 +34,7 @@ interface WorkspaceStoreState {
   appendLog: (entry: string) => void;
   clearLogs: () => void;
   setIntermediateResults: (items: IntermediateResultItem[]) => void;
+  setWorkspaceInput: (input: Partial<ExperimentInput>) => void;
   updateIntermediateResult: (
     id: string,
     updates: Partial<Pick<IntermediateResultItem, "value" | "status" | "progress">>,
@@ -47,6 +50,14 @@ const ACTION_TO_STATE: Record<PipelineAction, PipelineState> = {
 export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
   pipelineState: "idle",
   lastAction: null,
+  workspaceInput: {
+    protein: "MNSRSLVQEP...GQGAFGTVYKGLWIPEGEK",
+    constraints: {
+      logP: 2.4,
+      qed: 0.78,
+      toxicity: "Low",
+    },
+  },
   errorMessage: null,
   pipelineLogs: ["System ready. Select a pipeline action to begin."],
   intermediateResults: [],
@@ -85,6 +96,18 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
   clearLogs: () => set({ pipelineLogs: [] }),
 
   setIntermediateResults: (items) => set({ intermediateResults: items }),
+
+  setWorkspaceInput: (input) =>
+    set((state) => ({
+      workspaceInput: {
+        ...state.workspaceInput,
+        ...input,
+        constraints: {
+          ...state.workspaceInput.constraints,
+          ...(input.constraints ?? {}),
+        },
+      },
+    })),
 
   updateIntermediateResult: (id, updates) =>
     set((state) => ({

@@ -20,7 +20,7 @@ export function ResultsFilterBar({
   onClear,
 }: ResultsFilterBarProps) {
   return (
-    <section className="rounded-xl border border-white/10 bg-slate-900/60 p-4">
+    <section className="ui-fade-in ui-hover-lift ui-state-transition rounded-xl border border-white/10 bg-slate-900/60 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-sm font-semibold text-slate-100">Global Filters</h2>
@@ -32,7 +32,7 @@ export function ResultsFilterBar({
         <button
           type="button"
           onClick={onClear}
-          className="w-fit rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs font-medium text-slate-100 transition hover:bg-white/10"
+          className="ui-button w-fit rounded-lg border border-white/15 bg-slate-950/70 px-3 py-2 text-xs font-medium text-slate-100 transition hover:bg-white/10"
         >
           Clear filters
         </button>

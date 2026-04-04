@@ -51,18 +51,24 @@ export default function SummaryCards({
         value={summary.molecule_count.toLocaleString()}
         description="Records currently available in this dataset"
         icon={<MoleculeIcon />}
+        titleTooltip="Total molecules in the active dataset."
+        iconTooltip="Molecule dataset coverage"
       />
       <StatCard
         title="Experiments"
         value={experimentValue}
         description={experimentDescription}
         icon={<ExperimentIcon />}
+        titleTooltip="Count of tracked experiment runs."
+        iconTooltip="Experiment activity"
       />
       <StatCard
         title="Success Rate"
         value={`${successRate.toFixed(1)}%`}
         description="Proxy based on current average QED signal"
         icon={<SuccessIcon />}
+        titleTooltip="QED-based proxy indicator."
+        iconTooltip="QED indicates drug-likeness quality"
       />
     </div>
   );
