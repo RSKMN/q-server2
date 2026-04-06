@@ -1,12 +1,17 @@
 from contextlib import asynccontextmanager
+import logging
 import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routers import health, molecules, embeddings, experiments, results, datasets
+from services.database.dataset_catalog import seed_datasets_from_csv_directory
 from services.database.postgres_client import get_engine
 from services.database import models as db_models
 from fastapi.responses import Response
+
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -15,6 +20,10 @@ async def lifespan(_: FastAPI):
     if os.getenv("P3_SKIP_DB_INIT", "false").strip().lower() not in {"1", "true", "yes", "on"}:
         engine = get_engine()
         db_models.Base.metadata.create_all(bind=engine)
+        try:
+            seed_datasets_from_csv_directory()
+        except Exception as exc:
+            logger.warning("Dataset seeding skipped or failed: %s", exc)
     yield
 
 
