@@ -2,26 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const MOCK_PDB = `HEADER    MOCK LIGAND
-ATOM      1  C1  MOL A   1       0.000   0.000   0.000  1.00  0.00           C
-ATOM      2  O1  MOL A   1       1.230   0.000   0.000  1.00  0.00           O
-ATOM      3  C2  MOL A   1      -0.620   1.080   0.000  1.00  0.00           C
-ATOM      4  N1  MOL A   1      -1.230  -0.930   0.000  1.00  0.00           N
-ATOM      5  H1  MOL A   1      -1.950  -1.100   0.780  1.00  0.00           H
-END`;
-
-const DEFAULT_SMILES = "CC(=O)Oc1ccccc1C(=O)O";
-
 const smilesSdfCache: Record<string, string> = {};
 
 function joinClasses(...classes: Array<string | undefined | false>) {
   return classes.filter(Boolean).join(" ");
-}
-
-function buildFallbackSource(format: "smiles" | "pdb") {
-  return format === "pdb"
-    ? { format: "pdb" as const, value: MOCK_PDB, label: "Mock PDB" }
-    : { format: "smiles" as const, value: DEFAULT_SMILES, label: "Mock SMILES" };
 }
 
 export interface ThreeDMoleculeViewerSource {
@@ -89,17 +73,13 @@ export default function ThreeDMoleculeViewer({
     );
   }, [activeMoleculeId, moleculeOptions]);
 
-  const primarySource =
-    selectedMoleculeOption?.source ?? source ?? buildFallbackSource("pdb");
-  const secondarySource =
-    selectedMoleculeOption?.alternateSource ??
-    alternateSource ??
-    (primarySource.format === "smiles"
-      ? buildFallbackSource("pdb")
-      : buildFallbackSource("smiles"));
+  const primarySource = selectedMoleculeOption?.source ?? source ?? null;
+  const secondarySource = selectedMoleculeOption?.alternateSource ?? alternateSource ?? null;
 
   const activeSource =
-    activeSourceSlot === "primary" ? primarySource : secondarySource;
+    activeSourceSlot === "primary"
+      ? primarySource
+      : (secondarySource ?? primarySource);
 
   useEffect(() => {
     if (!moleculeOptions?.length) return;
@@ -135,10 +115,14 @@ export default function ThreeDMoleculeViewer({
 
         viewerRef.current.clear();
 
+        if (!activeSource?.value?.trim()) {
+          throw new Error("No molecule source is available for rendering.");
+        }
+
         let modelData = activeSource.value;
 
         if (activeSource.format === "smiles") {
-          const smiles = activeSource.value.trim() || DEFAULT_SMILES;
+          const smiles = activeSource.value.trim();
           if (smilesSdfCache[smiles]) {
             modelData = smilesSdfCache[smiles];
           } else {
@@ -250,6 +234,9 @@ export default function ThreeDMoleculeViewer({
   };
 
   const showSourceToggle = useMemo(() => {
+    if (!primarySource || !secondarySource) {
+      return false;
+    }
     return (
       primarySource.format !== secondarySource.format ||
       primarySource.value !== secondarySource.value
@@ -264,28 +251,30 @@ export default function ThreeDMoleculeViewer({
   return (
     <section
       className={joinClasses(
-        "flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 dark:border-[#1e293b] dark:bg-[#0b0f19]",
+        "flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-300",
         className,
       )}
+      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
-      <header className="flex flex-col gap-3 border-b border-slate-200 p-4 dark:border-[#1e293b] sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-start sm:justify-between" style={{ borderColor: "var(--border)" }}>
         <div>
-          <h3 className="viz-title text-base tracking-tight text-slate-900 dark:text-slate-100">
+          <h3 className="viz-title text-base tracking-tight" style={{ color: "var(--text)" }}>
             {title}
           </h3>
-          <p className="viz-subtitle mt-1 text-sm leading-6 dark:text-slate-400">
+          <p className="viz-subtitle mt-1 text-sm leading-6" style={{ color: "var(--muted-text)" }}>
             {subtitle}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {moleculeOptions?.length ? (
-            <label className="text-xs text-slate-500 dark:text-slate-400">
+            <label className="text-xs" style={{ color: "var(--muted-text)" }}>
               <span className="sr-only">Select molecule</span>
               <select
                 value={selectedMoleculeOption?.id ?? ""}
                 onChange={(event) => handleMoleculeSelect(event.target.value)}
-                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-cyan-500 focus:outline-none dark:border-[#1e293b] dark:bg-[#020617] dark:text-slate-200"
+                className="h-9 rounded-lg border px-3 text-sm focus:outline-none"
+                style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--text)" }}
               >
                 {moleculeOptions.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -297,16 +286,20 @@ export default function ThreeDMoleculeViewer({
           ) : null}
 
           {showSourceToggle ? (
-            <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-[#1e293b] dark:bg-[#020617]">
+            <div className="flex items-center rounded-lg border p-1" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
               <button
                 type="button"
                 onClick={() => setActiveSourceSlot("primary")}
                 className={joinClasses(
                   "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                   activeSourceSlot === "primary"
-                    ? "bg-cyan-500 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
+                    ? "shadow-sm"
+                    : "",
                 )}
+                style={{
+                  backgroundColor: activeSourceSlot === "primary" ? "var(--accent)" : "transparent",
+                  color: activeSourceSlot === "primary" ? "var(--bg)" : "var(--muted-text)",
+                }}
               >
                 {primarySource.label ?? primarySource.format.toUpperCase()}
               </button>
@@ -316,9 +309,13 @@ export default function ThreeDMoleculeViewer({
                 className={joinClasses(
                   "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
                   activeSourceSlot === "alternate"
-                    ? "bg-cyan-500 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
+                    ? "shadow-sm"
+                    : "",
                 )}
+                style={{
+                  backgroundColor: activeSourceSlot === "alternate" ? "var(--accent)" : "transparent",
+                  color: activeSourceSlot === "alternate" ? "var(--bg)" : "var(--muted-text)",
+                }}
               >
                 {secondarySource.label ?? secondarySource.format.toUpperCase()}
               </button>
@@ -328,26 +325,26 @@ export default function ThreeDMoleculeViewer({
       </header>
 
       <div className="grid min-h-0 flex-1 gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="viz-glow-soft relative min-h-[320px] overflow-hidden rounded-xl border border-slate-200 bg-slate-50 transition-all duration-300 dark:border-[#1e293b] dark:bg-[#020617]">
+        <div className="viz-glow-soft relative min-h-[320px] overflow-hidden rounded-xl border transition-all duration-300" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
           <div ref={containerRef} className="absolute inset-0" />
 
           {isLoading ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-[2px] dark:bg-slate-950/80">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-cyan-500" />
+            <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[2px]" style={{ backgroundColor: "rgba(255,255,255,0.8)" }}>
+              <div className="h-6 w-6 animate-spin rounded-full border-2" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} />
             </div>
           ) : error ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/90 px-6 text-center dark:bg-slate-950/90">
-              <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
+            <div className="absolute inset-0 z-10 flex items-center justify-center px-6 text-center" style={{ backgroundColor: "rgba(255,255,255,0.9)" }}>
+              <p className="text-sm" style={{ color: "var(--error)" }}>{error}</p>
             </div>
           ) : null}
 
-          <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500 shadow-sm dark:border-[#1e293b] dark:bg-slate-950/90 dark:text-slate-400">
+          <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] shadow-sm" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--muted-text)" }}>
             {isReady ? "Interactive 3Dmol view" : "Rendering"}
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:border-[#1e293b] dark:bg-[#020617]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+        <div className="space-y-3 rounded-xl border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--muted-text)" }}>
             Controls
           </p>
 
@@ -360,9 +357,14 @@ export default function ThreeDMoleculeViewer({
                 className={joinClasses(
                   "rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200",
                   representation === mode
-                    ? "border-cyan-500 bg-cyan-500 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800",
+                    ? ""
+                    : "",
                 )}
+                style={{
+                  borderColor: representation === mode ? "var(--accent)" : "var(--border)",
+                  backgroundColor: representation === mode ? "var(--accent)" : "var(--card)",
+                  color: representation === mode ? "var(--bg)" : "var(--text)",
+                }}
               >
                 {mode[0].toUpperCase() + mode.slice(1)}
               </button>
@@ -370,34 +372,35 @@ export default function ThreeDMoleculeViewer({
           </div>
 
           {showSurfaceControl ? (
-            <label className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200">
+            <label className="flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Surface
               <input
                 type="checkbox"
                 checked={surfaceEnabled}
                 onChange={(event) => setSurfaceEnabled(event.target.checked)}
-                className="h-4 w-4 accent-cyan-500"
+                className="h-4 w-4"
+                style={{ accentColor: "var(--accent)" }}
               />
             </label>
           ) : null}
 
           <div className="grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => handleRotate("y", -12)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-[1px] hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => handleRotate("y", -12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Rotate Left
             </button>
-            <button type="button" onClick={() => handleRotate("y", 12)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-[1px] hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => handleRotate("y", 12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Rotate Right
             </button>
-            <button type="button" onClick={() => handleRotate("x", -12)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-[1px] hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => handleRotate("x", -12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Tilt Down
             </button>
-            <button type="button" onClick={() => handleRotate("x", 12)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-[1px] hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => handleRotate("x", 12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Tilt Up
             </button>
-            <button type="button" onClick={() => handleZoom(1.15)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-[1px] hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => handleZoom(1.15)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Zoom In
             </button>
-            <button type="button" onClick={() => handleZoom(0.85)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:-translate-y-[1px] hover:bg-slate-100 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-slate-800">
+            <button type="button" onClick={() => handleZoom(0.85)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
               Zoom Out
             </button>
           </div>
@@ -405,12 +408,13 @@ export default function ThreeDMoleculeViewer({
           <button
             type="button"
             onClick={handleReset}
-            className="w-full rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 transition hover:bg-cyan-100 dark:border-cyan-900/40 dark:bg-cyan-950/30 dark:text-cyan-200 dark:hover:bg-cyan-900/40"
+            className="w-full rounded-lg border px-3 py-2 text-xs font-semibold transition"
+            style={{ borderColor: "var(--accent-border)", backgroundColor: "var(--accent-bg)", color: "var(--accent-text)" }}
           >
             Reset View
           </button>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-500 dark:border-[#1e293b] dark:bg-slate-950 dark:text-slate-400">
+          <div className="rounded-lg border p-3 text-xs" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--muted-text)" }}>
             Drag to rotate, scroll or pinch to zoom, and use the buttons for quick view changes.
           </div>
         </div>

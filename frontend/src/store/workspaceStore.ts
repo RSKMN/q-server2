@@ -22,6 +22,7 @@ export interface IntermediateResultItem {
 interface WorkspaceStoreState {
   pipelineState: PipelineState;
   lastAction: PipelineAction | null;
+  lastExperimentId: string | null;
   workspaceInput: ExperimentInput;
   errorMessage: string | null;
   pipelineLogs: string[];
@@ -30,6 +31,7 @@ interface WorkspaceStoreState {
   startAction: (action: PipelineAction) => void;
   setCompleted: () => void;
   setError: (message: string) => void;
+  setLastExperimentId: (experimentId: string | null) => void;
   resetPipeline: () => void;
   appendLog: (entry: string) => void;
   clearLogs: () => void;
@@ -50,6 +52,7 @@ const ACTION_TO_STATE: Record<PipelineAction, PipelineState> = {
 export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
   pipelineState: "idle",
   lastAction: null,
+  lastExperimentId: null,
   workspaceInput: {
     protein: "MNSRSLVQEP...GQGAFGTVYKGLWIPEGEK",
     constraints: {
@@ -79,10 +82,13 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       errorMessage: message,
     }),
 
+  setLastExperimentId: (experimentId) => set({ lastExperimentId: experimentId }),
+
   resetPipeline: () =>
     set({
       pipelineState: "idle",
       lastAction: null,
+      lastExperimentId: null,
       errorMessage: null,
       pipelineLogs: ["System reset. Waiting for next action."],
       intermediateResults: [],

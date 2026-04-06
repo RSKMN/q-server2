@@ -31,13 +31,20 @@ export function Card({
   return (
     <section
       className={joinClasses(
-        "rounded-2xl border border-white/10 bg-slate-900/70 shadow-xl shadow-black/20 backdrop-blur-sm",
+        "rounded-2xl border shadow-xl shadow-black/20 backdrop-blur-sm",
         className,
       )}
+      style={{
+        backgroundColor: "var(--card)",
+        borderColor: "var(--border)",
+      }}
       {...props}
     >
       {header ? (
-        <div className={joinClasses("border-b border-white/10 px-6 py-4", headerClassName)}>
+        <div
+          className={joinClasses("border-b px-6 py-4", headerClassName)}
+          style={{ borderColor: "var(--border)" }}
+        >
           {header}
         </div>
       ) : null}
@@ -47,7 +54,10 @@ export function Card({
       ) : null}
 
       {footer ? (
-        <div className={joinClasses("border-t border-white/10 px-6 py-4", footerClassName)}>
+        <div
+          className={joinClasses("border-t px-6 py-4", footerClassName)}
+          style={{ borderColor: "var(--border)" }}
+        >
           {footer}
         </div>
       ) : null}
@@ -56,7 +66,13 @@ export function Card({
 }
 
 export function CardHeader({ className, ...props }: CardSectionProps) {
-  return <div className={joinClasses("border-b border-white/10 px-6 py-4", className)} {...props} />;
+  return (
+    <div
+      className={joinClasses("border-b px-6 py-4", className)}
+      style={{ borderColor: "var(--border)" }}
+      {...props}
+    />
+  );
 }
 
 export function CardContent({ className, ...props }: CardSectionProps) {
@@ -64,5 +80,11 @@ export function CardContent({ className, ...props }: CardSectionProps) {
 }
 
 export function CardFooter({ className, ...props }: CardSectionProps) {
-  return <div className={joinClasses("border-t border-white/10 px-6 py-4", className)} {...props} />;
+  return (
+    <div
+      className={joinClasses("border-t px-6 py-4", className)}
+      style={{ borderColor: "var(--border)" }}
+      {...props}
+    />
+  );
 }

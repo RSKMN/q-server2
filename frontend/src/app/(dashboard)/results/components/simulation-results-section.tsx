@@ -2,6 +2,15 @@ import type { ScoreBand, StabilityBand } from "./results-filter-types";
 import { CsvDownloadButton } from "./csv-download-button";
 import type { SimulationResult } from "@/types/api";
 import { ChartSkeleton, ResultsEmptyState } from "./results-state";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const SUMMARY_METRICS = [
   { label: "Average RMSD", value: "1.57 Å" },
@@ -9,10 +18,6 @@ const SUMMARY_METRICS = [
   { label: "Drift", value: "+0.75 Å" },
   { label: "Frames", value: "13" },
 ];
-
-const MARGIN = { top: 18, right: 18, bottom: 36, left: 42 };
-const CHART_WIDTH = 760;
-const CHART_HEIGHT = 300;
 
 function formatTime(value: number): string {
   return `${value} ns`;
@@ -24,6 +29,7 @@ function formatRmsd(value: number): string {
 
 interface SimulationResultsSectionProps {
   items: SimulationResult[];
+  simulationVideoUrl?: string | null;
   searchQuery: string;
   scoreBand: ScoreBand;
   stabilityBand: StabilityBand;
@@ -39,6 +45,7 @@ function matchesSearch(item: SimulationResult, searchQuery: string): boolean {
 
 export function SimulationResultsSection({
   items,
+  simulationVideoUrl,
   searchQuery,
   scoreBand,
   stabilityBand,
@@ -67,26 +74,8 @@ export function SimulationResultsSection({
     );
   }
 
-  const times = filteredItems.map((point) => point.time);
   const values = filteredItems.map((point) => point.rmsd);
-  const minTime = Math.min(...times);
-  const maxTime = Math.max(...times);
-  const minValue = Math.max(0, Math.min(...values) - 0.15);
-  const maxValue = Math.max(...values) + 0.2;
-  const timeSpan = Math.max(1, maxTime - minTime);
-  const valueSpan = Math.max(0.001, maxValue - minValue);
-  const plotWidth = CHART_WIDTH - MARGIN.left - MARGIN.right;
-  const plotHeight = CHART_HEIGHT - MARGIN.top - MARGIN.bottom;
-
-  const points = filteredItems.map((point) => {
-    const x = MARGIN.left + ((point.time - minTime) / timeSpan) * plotWidth;
-    const y =
-      MARGIN.top +
-      (1 - (point.rmsd - minValue) / valueSpan) * plotHeight;
-    return { ...point, x, y };
-  });
-
-  const polylinePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const chartData = filteredItems.map((point) => ({ time: point.time, rmsd: point.rmsd }));
   const averageRmsd = values.reduce((sum, value) => sum + value, 0) / values.length;
   const stable = averageRmsd < 2.0 && Math.max(...values) < 2.5;
   const stabilityLabel = stable ? "Stable" : "Unstable";
@@ -183,99 +172,62 @@ export function SimulationResultsSection({
           </div>
 
           <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-slate-900/80">
-            <svg viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} className="h-[300px] w-full">
-              <defs>
-                <linearGradient id="rmsdFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(34 211 238 / 0.25)" />
-                  <stop offset="100%" stopColor="rgb(34 211 238 / 0.02)" />
-                </linearGradient>
-              </defs>
-
-              {[0, 0.5, 1, 1.5, 2].map((gridValue) => {
-                const y =
-                  MARGIN.top +
-                  (1 - (gridValue - minValue) / valueSpan) *
-                    (CHART_HEIGHT - MARGIN.top - MARGIN.bottom);
-                return (
-                  <g key={gridValue}>
-                    <line
-                      x1={MARGIN.left}
-                      x2={CHART_WIDTH - MARGIN.right}
-                      y1={y}
-                      y2={y}
-                      stroke="rgba(148,163,184,0.14)"
-                      strokeDasharray="4 6"
-                    />
-                    <text x={12} y={y + 4} fill="rgba(226,232,240,0.55)" fontSize="11">
-                      {gridValue.toFixed(1)}
-                    </text>
-                  </g>
-                );
-              })}
-
-              <polyline
-                fill="url(#rmsdFill)"
-                stroke="rgba(34,211,238,0.0)"
-                strokeWidth="0"
-                points={`${polylinePoints} ${CHART_WIDTH - MARGIN.right},${CHART_HEIGHT - MARGIN.bottom} ${MARGIN.left},${CHART_HEIGHT - MARGIN.bottom}`}
-              />
-              <polyline
-                fill="none"
-                stroke="rgb(34 211 238)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points={polylinePoints}
-              />
-
-              {points.map((point) => (
-                <g key={`${point.time}-${point.rmsd}`}>
-                  <circle cx={point.x} cy={point.y} r="4.5" fill="rgb(34 211 238)" />
-                  <circle cx={point.x} cy={point.y} r="9" fill="transparent">
-                    <title>
-                      {formatTime(point.time)}: {formatRmsd(point.rmsd)}
-                    </title>
-                  </circle>
-                </g>
-              ))}
-
-              <line
-                x1={MARGIN.left}
-                x2={MARGIN.left}
-                y1={MARGIN.top}
-                y2={CHART_HEIGHT - MARGIN.bottom}
-                stroke="rgba(148,163,184,0.22)"
-              />
-              <line
-                x1={MARGIN.left}
-                x2={CHART_WIDTH - MARGIN.right}
-                y1={CHART_HEIGHT - MARGIN.bottom}
-                y2={CHART_HEIGHT - MARGIN.bottom}
-                stroke="rgba(148,163,184,0.22)"
-              />
-
-              {points.filter((_, index) => index % 2 === 0).map((point) => (
-                <text
-                  key={`x-${point.time}`}
-                  x={point.x}
-                  y={CHART_HEIGHT - 10}
-                  fill="rgba(226,232,240,0.55)"
-                  fontSize="11"
-                  textAnchor="middle"
-                >
-                  {point.time}
-                </text>
-              ))}
-            </svg>
+            <div className="h-[300px] w-full px-2 py-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 16, right: 16, left: 4, bottom: 16 }}>
+                  <CartesianGrid strokeDasharray="4 6" stroke="rgba(148,163,184,0.22)" />
+                  <XAxis
+                    type="number"
+                    dataKey="time"
+                    tick={{ fontSize: 11, fill: "rgba(226,232,240,0.75)" }}
+                    tickFormatter={(value) => `${value}`}
+                    label={{ value: "Time (ns)", position: "insideBottom", offset: -8, fill: "rgba(226,232,240,0.75)", fontSize: 11 }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "rgba(226,232,240,0.75)" }}
+                    label={{ value: "RMSD", angle: -90, position: "insideLeft", fill: "rgba(226,232,240,0.75)", fontSize: 11 }}
+                  />
+                  <Tooltip
+                    labelFormatter={(label) => `Time: ${label} ns`}
+                    formatter={(value: number) => [formatRmsd(value), "RMSD"]}
+                    contentStyle={{
+                      borderRadius: 10,
+                      border: "1px solid rgba(148,163,184,0.35)",
+                      backgroundColor: "rgba(15,23,42,0.95)",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="rmsd"
+                    stroke="rgb(34 211 238)"
+                    strokeWidth={3}
+                    dot={{ r: 3, fill: "rgb(34 211 238)" }}
+                    activeDot={{ r: 5, fill: "rgb(125 211 252)" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
           <p className="mt-2 text-xs text-slate-400">Time in ns, RMSD in angstroms.</p>
         </article>
 
         <div className="space-y-4">
           <article className="rounded-xl border border-white/10 bg-slate-950/60 p-4">
-            <h3 className="text-sm font-semibold text-slate-100">Molecule Preview</h3>
-            <div className="mt-3 flex min-h-[180px] items-center justify-center rounded-lg border border-dashed border-white/15 bg-slate-900/70 px-4 text-center text-sm text-slate-400">
-              Preview placeholder for the selected simulated molecule or complex.
+            <h3 className="text-sm font-semibold text-slate-100">Simulation Video</h3>
+            <div className="mt-3 overflow-hidden rounded-lg border border-white/10 bg-slate-900/70">
+              {simulationVideoUrl ? (
+                <video
+                  controls
+                  className="h-full max-h-[260px] w-full bg-black"
+                  src={simulationVideoUrl}
+                >
+                  Your browser does not support the video tag.
+                </video>
+              ) : (
+                <div className="flex min-h-[180px] items-center justify-center px-4 text-center text-sm text-slate-400">
+                  No simulation video available for this experiment.
+                </div>
+              )}
             </div>
           </article>
 

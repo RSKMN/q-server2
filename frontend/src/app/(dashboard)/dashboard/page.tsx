@@ -115,15 +115,15 @@ export default function DashboardPage() {
     <div className="page-shell ui-fade-in">
       <div className="ui-state-transition flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="page-title text-slate-900 dark:text-slate-100">
+          <h1 className="page-title" style={{ color: "var(--text)" }}>
             Dashboard
           </h1>
-          <p className="page-subtitle mt-2 text-slate-500 dark:text-slate-400">
+          <p className="page-subtitle mt-2" style={{ color: "var(--muted-text)" }}>
             Dataset statistics and molecular properties
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 sm:inline-block">
+          <span className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] sm:inline-block" style={{ color: "var(--muted-text)" }}>
             Active Dataset:
           </span>
           <DatasetSelector />
@@ -151,13 +151,13 @@ export default function DashboardPage() {
 
           <section className="space-y-5">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
                 Metrics
               </p>
-              <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text)" }}>
                 Overview
               </h2>
-              <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+              <p className="mt-1 text-sm leading-6" style={{ color: "var(--muted-text)" }}>
                 Core metrics for the currently selected dataset.
               </p>
             </div>
@@ -172,13 +172,13 @@ export default function DashboardPage() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <section className="space-y-5">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
                   Visualization
                 </p>
-                <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text)" }}>
                   Charts
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-sm leading-6" style={{ color: "var(--muted-text)" }}>
                   Distribution views for key molecular properties.
                 </p>
               </div>

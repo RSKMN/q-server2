@@ -135,10 +135,10 @@ export default function ChemicalSpacePage() {
     <div className="flex h-full flex-col">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          <h1 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
             Chemical Space
           </h1>
-          <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-0.5 text-sm" style={{ color: "var(--muted-text)" }}>
             UMAP projection of molecular embeddings ({filteredData.length} points)
           </p>
         </div>
@@ -146,14 +146,15 @@ export default function ChemicalSpacePage() {
         <button
           type="button"
           onClick={refreshData}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}
         >
           Refresh
         </button>
       </div>
 
       {error ? (
-        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ borderColor: "var(--error)", backgroundColor: "var(--error-bg)", color: "var(--error-text)" }}>
           {error}
         </div>
       ) : null}
@@ -188,10 +189,10 @@ export default function ChemicalSpacePage() {
 
         <div className="min-h-0 flex-1">
           {isLoading ? (
-            <div className="h-full min-h-[420px] rounded-xl border border-slate-200 bg-white p-4">
-              <div className="h-6 w-56 rounded-md bg-slate-100 skeleton-shimmer" />
-              <div className="mt-3 h-4 w-72 rounded-md bg-slate-100 skeleton-shimmer" />
-              <div className="mt-6 h-[460px] rounded-xl bg-slate-100 skeleton-shimmer" />
+            <div className="h-full min-h-[420px] rounded-xl border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+              <div className="h-6 w-56 rounded-md skeleton-shimmer" style={{ backgroundColor: "var(--border)" }} />
+              <div className="mt-3 h-4 w-72 rounded-md skeleton-shimmer" style={{ backgroundColor: "var(--border)" }} />
+              <div className="mt-6 h-[460px] rounded-xl skeleton-shimmer" style={{ backgroundColor: "var(--border)" }} />
             </div>
           ) : (
             <EmbeddingPlot
@@ -202,8 +203,8 @@ export default function ChemicalSpacePage() {
           )}
 
           {selectedPoint && (
-            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 dark:border-slate-700 dark:bg-slate-800/50">
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+            <div className="mt-3 rounded-lg border px-4 py-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
+              <p className="text-xs font-medium" style={{ color: "var(--text)" }}>
                 Selected {selectedPoint.molecule_id} | Dataset {selectedPoint.dataset} | QED {selectedPoint.qed.toFixed(2)} | MW {selectedPoint.mw.toFixed(1)}
               </p>
             </div>

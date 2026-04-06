@@ -40,7 +40,7 @@ const plans = [
 
 export function PricingSection() {
   return (
-    <section className="rounded-3xl border border-border/70 bg-surface-subtle/60 px-6 py-12 md:px-10 md:py-14">
+    <section id="pricing" className="rounded-3xl border border-border/70 bg-surface-subtle/60 px-6 py-12 md:px-10 md:py-14">
       <h2 className="font-heading text-3xl text-text md:text-4xl">Pricing</h2>
       <p className="mt-4 max-w-3xl font-body text-base leading-7 text-text-muted">
         Flexible plans for individuals, research teams, and enterprise-scale drug

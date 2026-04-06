@@ -98,28 +98,54 @@ export function Modal({
       }}
       role="presentation"
     >
-      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" aria-hidden="true" />
+      <div
+        className="absolute inset-0 backdrop-blur-sm"
+        style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
+        aria-hidden="true"
+      />
 
       <section
         className={joinClasses(
-          "relative z-10 w-full max-w-lg rounded-2xl border border-white/10 bg-slate-900/90 shadow-2xl shadow-black/30 transition-all duration-200",
+          "relative z-10 w-full max-w-lg rounded-2xl border shadow-2xl shadow-black/30 transition-all duration-200",
           isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-2",
         )}
+        style={{
+          backgroundColor: "var(--card)",
+          borderColor: "var(--border)",
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
       >
         {title ? (
-          <header className="border-b border-white/10 px-6 py-4">
-            <h2 id="modal-title" className="text-lg font-semibold text-slate-100">
+          <header
+            className="border-b px-6 py-4"
+            style={{ borderColor: "var(--border)" }}
+          >
+            <h2
+              id="modal-title"
+              className="text-lg font-semibold"
+              style={{ color: "var(--text)" }}
+            >
               {title}
             </h2>
           </header>
         ) : null}
 
-        {resolvedContent ? <div className="px-6 py-5 text-slate-200">{resolvedContent}</div> : null}
+        {resolvedContent ? (
+          <div className="px-6 py-5" style={{ color: "var(--text)" }}>
+            {resolvedContent}
+          </div>
+        ) : null}
 
-        {actions ? <footer className="border-t border-white/10 px-6 py-4">{actions}</footer> : null}
+        {actions ? (
+          <footer
+            className="border-t px-6 py-4"
+            style={{ borderColor: "var(--border)" }}
+          >
+            {actions}
+          </footer>
+        ) : null}
       </section>
     </div>
   );

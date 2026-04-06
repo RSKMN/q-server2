@@ -26,12 +26,14 @@ export default function SearchBar({
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_120px_auto] md:items-end"
+      className="grid gap-3 rounded-xl border p-4 shadow-sm md:grid-cols-[1fr_120px_auto] md:items-end"
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
     >
       <div>
         <label
           htmlFor="smiles-input"
-          className="mb-1 block text-xs font-medium text-slate-600"
+          className="mb-1 block text-xs font-medium"
+          style={{ color: "var(--muted-text)" }}
         >
           SMILES
         </label>
@@ -40,14 +42,16 @@ export default function SearchBar({
           value={smiles}
           onChange={(event) => setSmiles(event.target.value)}
           placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+          className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}
         />
       </div>
 
       <div>
         <label
           htmlFor="top-k-select"
-          className="mb-1 block text-xs font-medium text-slate-600"
+          className="mb-1 block text-xs font-medium"
+          style={{ color: "var(--muted-text)" }}
         >
           top_k
         </label>
@@ -55,7 +59,8 @@ export default function SearchBar({
           id="top-k-select"
           value={topK}
           onChange={(event) => setTopK(Number(event.target.value))}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+          className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
+          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}
         >
           {[5, 10, 20, 50].map((value) => (
             <option key={value} value={value}>
@@ -68,7 +73,8 @@ export default function SearchBar({
       <button
         type="submit"
         disabled={isLoading}
-        className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+        style={{ backgroundColor: "var(--accent)", color: "var(--bg)" }}
       >
         {isLoading ? "Searching..." : "Search"}
       </button>

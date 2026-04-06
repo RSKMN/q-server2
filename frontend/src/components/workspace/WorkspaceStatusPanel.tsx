@@ -6,44 +6,62 @@ const statusMeta: Record<
   ReturnType<typeof useWorkspaceStore.getState>["pipelineState"],
   {
     badgeLabel: string;
-    badgeClassName: string;
+    badgeStyle: React.CSSProperties;
     detail: string;
   }
 > = {
   idle: {
     badgeLabel: "Idle",
-    badgeClassName:
-      "border-slate-600 bg-slate-700/40 text-slate-200",
+    badgeStyle: {
+      borderColor: "var(--border)",
+      backgroundColor: "var(--muted-bg)",
+      color: "var(--text)",
+    },
     detail: "Waiting for a pipeline action.",
   },
   generating: {
     badgeLabel: "Generating",
-    badgeClassName:
-      "border-cyan-400/40 bg-cyan-500/20 text-cyan-200",
+    badgeStyle: {
+      borderColor: "var(--accent-border)",
+      backgroundColor: "var(--accent-bg)",
+      color: "var(--accent-text)",
+    },
     detail: "Creating new candidate molecules from input constraints.",
   },
   docking: {
     badgeLabel: "Docking",
-    badgeClassName:
-      "border-amber-300/40 bg-amber-500/20 text-amber-200",
+    badgeStyle: {
+      borderColor: "var(--warning)",
+      backgroundColor: "var(--muted-bg)",
+      color: "var(--warning)",
+    },
     detail: "Evaluating binding affinity across selected targets.",
   },
   running_full_pipeline: {
     badgeLabel: "Full Pipeline",
-    badgeClassName:
-      "border-blue-400/40 bg-blue-500/20 text-blue-200",
+    badgeStyle: {
+      borderColor: "var(--info)",
+      backgroundColor: "var(--muted-bg)",
+      color: "var(--info)",
+    },
     detail: "Running generation, docking, and post-processing steps.",
   },
   completed: {
     badgeLabel: "Completed",
-    badgeClassName:
-      "border-emerald-400/40 bg-emerald-500/20 text-emerald-200",
+    badgeStyle: {
+      borderColor: "var(--success)",
+      backgroundColor: "var(--muted-bg)",
+      color: "var(--success)",
+    },
     detail: "Latest run finished successfully.",
   },
   error: {
     badgeLabel: "Error",
-    badgeClassName:
-      "border-rose-400/40 bg-rose-500/20 text-rose-200",
+    badgeStyle: {
+      borderColor: "var(--error)",
+      backgroundColor: "var(--error-bg)",
+      color: "var(--error-text)",
+    },
     detail: "Run failed. Inspect logs and retry.",
   },
 };
@@ -93,34 +111,35 @@ export default function WorkspaceStatusPanel() {
   ];
 
   return (
-    <article className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-xl shadow-slate-950/40">
+    <article className="rounded-2xl border p-5 shadow-xl shadow-slate-950/40" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Output</p>
-          <h2 className="mt-1 text-lg font-semibold text-slate-100">Run Status</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Current status: <span className="font-semibold text-slate-200">{formatPipelineState(pipelineState)}</span>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Output</p>
+          <h2 className="mt-1 text-lg font-semibold" style={{ color: "var(--text)" }}>Run Status</h2>
+          <p className="mt-1 text-xs" style={{ color: "var(--muted-text)" }}>
+            Current status: <span className="font-semibold" style={{ color: "var(--text)" }}>{formatPipelineState(pipelineState)}</span>
           </p>
         </div>
         <span
-          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${meta.badgeClassName}`}
+          className="rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
+          style={meta.badgeStyle}
         >
           {meta.badgeLabel}
         </span>
       </div>
 
       {pipelineState === "error" && errorMessage ? (
-        <div className="mb-3 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+        <div className="mb-3 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--error)", backgroundColor: "var(--error-bg)", color: "var(--error-text)" }}>
           {errorMessage}
         </div>
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         {statusCards.map((card) => (
-          <div key={card.label} className="rounded-xl border border-slate-700 bg-slate-950/70 p-3">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400">{card.label}</p>
-            <p className="mt-1 text-lg font-semibold capitalize text-slate-100">{card.value}</p>
-            <p className="mt-1 text-xs text-slate-400">{card.detail}</p>
+          <div key={card.label} className="rounded-xl border p-3" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
+            <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>{card.label}</p>
+            <p className="mt-1 text-lg font-semibold capitalize" style={{ color: "var(--text)" }}>{card.value}</p>
+            <p className="mt-1 text-xs" style={{ color: "var(--muted-text)" }}>{card.detail}</p>
           </div>
         ))}
       </div>

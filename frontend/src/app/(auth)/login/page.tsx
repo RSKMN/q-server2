@@ -53,13 +53,17 @@ export default function LoginPage() {
   };
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-100">Sign in</h2>
-        <p className="text-sm text-slate-400">Access your research workspace.</p>
+    <section className="space-y-7">
+      <header className="space-y-2.5 text-center">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-[1.72rem]" style={{ color: "var(--text)" }}>
+          Sign in
+        </h2>
+        <p className="text-sm leading-6" style={{ color: "var(--muted-text)" }}>
+          Access your research workspace.
+        </p>
       </header>
 
-      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <Input
           id="login-email"
           name="email"
@@ -67,6 +71,8 @@ export default function LoginPage() {
           autoComplete="email"
           label="Email"
           placeholder="researcher@quinfosys.com"
+          containerClassName="auth-input-group"
+          className="auth-input"
           value={values.email}
           onChange={(event) => setFieldValue("email", event.target.value)}
           onBlur={() => markTouched("email")}
@@ -82,6 +88,8 @@ export default function LoginPage() {
           autoComplete="current-password"
           label="Password"
           placeholder="Enter your password"
+          containerClassName="auth-input-group"
+          className="auth-input"
           value={values.password}
           onChange={(event) => setFieldValue("password", event.target.value)}
           onBlur={() => markTouched("password")}
@@ -95,7 +103,7 @@ export default function LoginPage() {
 
         <Button
           type="submit"
-          className="w-full"
+          className="ui-button w-full rounded-xl py-3"
           disabled={!isValid || isLoading}
           isLoading={isLoading}
           loadingText="Signing in..."
@@ -104,11 +112,11 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="flex items-center justify-between text-sm text-slate-400">
-        <Link href="/forgot-password" className="transition hover:text-cyan-300">
+      <div className="flex items-center justify-between text-sm" style={{ color: "var(--muted-text)" }}>
+        <Link href="/forgot-password" className="transition" style={{ color: "var(--accent)" }}>
           Forgot password?
         </Link>
-        <Link href="/signup" className="transition hover:text-cyan-300">
+        <Link href="/signup" className="transition" style={{ color: "var(--accent)" }}>
           Create account
         </Link>
       </div>

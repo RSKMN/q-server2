@@ -183,6 +183,7 @@ async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
 			"experiment_id": experiment_id,
 			"protein": request.protein,
 			"status": "running",
+			"created_at": datetime.now(timezone.utc).isoformat(),
 		}
 	)
 

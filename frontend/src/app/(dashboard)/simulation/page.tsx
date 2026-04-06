@@ -4,9 +4,9 @@ export default function SimulationPage() {
   return (
     <div className="page-shell">
       <header className="page-header">
-        <p className="page-kicker text-cyan-300/80">Simulation</p>
-        <h1 className="page-title text-slate-100">Simulation Workspace</h1>
-        <p className="page-subtitle text-slate-400">
+        <p className="page-kicker" style={{ color: "var(--accent)" }}>Simulation</p>
+        <h1 className="page-title" style={{ color: "var(--text)" }}>Simulation Workspace</h1>
+        <p className="page-subtitle" style={{ color: "var(--muted-text)" }}>
           Simulation controls are being finalized. Use Workspace to run and monitor active pipelines.
         </p>
       </header>

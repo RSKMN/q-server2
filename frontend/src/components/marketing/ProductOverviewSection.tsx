@@ -34,7 +34,7 @@ export function ProductOverviewSection() {
           Product Overview
         </h2>
         <p className="mt-4 max-w-3xl font-body text-base leading-7 text-text-muted">
-          QuinfosysTM QuDrugForge, Quantum AI for Drug Discovery, guides teams
+          Quinfosys<span style={{ verticalAlign: "super", fontSize: "0.65em", lineHeight: 0 }}>™</span> QuDrugForge, Quantum AI for Drug Discovery, guides teams
           from idea to validated candidates in one AI-driven workflow. It is
           designed to be clear enough for non-experts while still useful for
           research professionals.

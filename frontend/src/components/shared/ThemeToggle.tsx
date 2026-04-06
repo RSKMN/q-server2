@@ -1,56 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-type ThemeMode = "light" | "dark";
-
-const STORAGE_KEY = "qdrugforge.theme";
-
-function resolveInitialTheme(): ThemeMode {
-  if (typeof window === "undefined") return "dark";
-
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-}
-
-function applyTheme(mode: ThemeMode) {
-  const root = document.documentElement;
-  root.classList.toggle("dark", mode === "dark");
-  root.dataset.theme = mode;
-  root.style.colorScheme = mode;
-}
+import { useTheme } from "@/hooks/useTheme";
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemeMode>("dark");
+  const { theme, toggleTheme } = useTheme();
 
-  useEffect(() => {
-    const initialTheme = resolveInitialTheme();
-    setTheme(initialTheme);
-    applyTheme(initialTheme);
-  }, []);
-
-  const toggleTheme = () => {
-    const nextTheme: ThemeMode = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    applyTheme(nextTheme);
-    window.localStorage.setItem(STORAGE_KEY, nextTheme);
-  };
+  if (!theme) return null;
 
   return (
     <button
       type="button"
       onClick={toggleTheme}
-      className="ui-button rounded-md border border-slate-300 bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-white/15 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
-      aria-label="Toggle color theme"
+      className="ui-button inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/40"
+      style={{
+        borderColor: "var(--border)",
+        backgroundColor: "var(--card)",
+        color: "var(--text)",
+      }}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      aria-pressed={theme === "dark"}
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {theme === "dark" ? "Light Mode" : "Dark Mode"}
+      <span className="relative flex h-5 w-5 items-center justify-center">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          className={`absolute h-5 w-5 transition-all duration-300 ${theme === "light" ? "scale-100 rotate-0 opacity-100" : "scale-75 -rotate-45 opacity-0"}`}
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4.5" />
+          <path d="M12 2.5v2.2M12 19.3v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" strokeLinecap="round" />
+        </svg>
+        <svg
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className={`absolute h-5 w-5 transition-all duration-300 ${theme === "dark" ? "scale-100 rotate-0 opacity-100" : "scale-75 rotate-45 opacity-0"}`}
+          aria-hidden="true"
+        >
+          <path d="M21.6 14.7A8.5 8.5 0 0 1 9.3 2.4a1 1 0 0 0-1.1 1.3 9.8 9.8 0 1 0 11.9 11.9 1 1 0 0 0-1.5-1Z" />
+        </svg>
+      </span>
     </button>
   );
 }

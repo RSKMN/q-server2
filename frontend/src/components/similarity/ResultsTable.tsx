@@ -15,28 +15,28 @@ export default function ResultsTable({
 }: ResultsTableProps) {
   if (isLoading) {
     return (
-      <div className="flex min-h-[220px] items-center justify-center rounded-xl border border-slate-200 bg-white">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" />
+      <div className="flex min-h-[220px] items-center justify-center rounded-xl border" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
+        <div className="h-6 w-6 animate-spin rounded-full border-2" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} />
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-left">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr className="border-b" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>
                 molecule_id
               </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>
                 similarity score
               </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>
                 MW
               </th>
-              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>
                 QED
               </th>
             </tr>
@@ -46,7 +46,8 @@ export default function ResultsTable({
               <tr>
                 <td
                   colSpan={4}
-                  className="px-4 py-8 text-center text-sm text-slate-500"
+                    className="px-4 py-8 text-center text-sm"
+                    style={{ color: "var(--muted-text)" }}
                 >
                   No results yet. Enter a SMILES and click Search.
                 </td>
@@ -56,9 +57,10 @@ export default function ResultsTable({
                 <tr
                   key={result.molecule_id}
                   onClick={() => onRowClick?.(result)}
-                  className="border-b border-slate-100 text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                  className="border-b text-sm transition-colors"
+                  style={{ borderColor: "var(--border)", color: "var(--text)" }}
                 >
-                  <td className="px-4 py-3 font-medium text-slate-900">
+                  <td className="px-4 py-3 font-medium" style={{ color: "var(--text)" }}>
                     {result.molecule_id}
                   </td>
                   <td className="px-4 py-3">{result.similarity.toFixed(4)}</td>

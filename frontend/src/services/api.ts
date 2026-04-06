@@ -132,7 +132,7 @@ interface ApiRequestOptions extends Omit<RequestInit, "body"> {
 export type WorkspaceToxicityLevel = "Low" | "Medium" | "High";
 
 export interface WorkspacePipelineRequest {
-  proteinSequence?: string;
+  protein: string;
   constraints?: {
     logP?: number;
     qed?: number;
@@ -140,16 +140,31 @@ export interface WorkspacePipelineRequest {
   };
 }
 
-export type WorkspacePipelineStage = "generating" | "docking" | "completed";
-
 export interface WorkspacePipelineResponse {
-  runId: string;
-  stage: WorkspacePipelineStage;
-  message: string;
+  experimentId: string;
 }
 
-interface RunPipelineOptions {
-  onStageChange?: (stage: WorkspacePipelineStage, message: string) => void;
+export interface WorkspacePipelineStatusResponse {
+  status: string;
+  stage: string;
+  progress: number;
+  logs: string[];
+}
+
+export interface PipelineExperimentItem {
+  experiment_id: string;
+  protein: string;
+  status: string;
+  created_at: string;
+}
+
+export interface CreatePipelineExperimentRequest {
+  experiment_id: string;
+  protein: string;
+}
+
+interface PipelineExperimentsResponse {
+  experiments: PipelineExperimentItem[];
 }
 
 /** Build full URL with optional path and query params */
@@ -631,29 +646,50 @@ export async function runDocking(
   }
 }
 
-/** Trigger full pipeline. Falls back to staged timeout simulation when backend is unavailable. */
+/** Trigger full pipeline against the backend pipeline endpoint. */
 export async function runPipeline(
-  payload: WorkspacePipelineRequest = {},
-  options: RunPipelineOptions = {}
+  payload: WorkspacePipelineRequest
 ): Promise<WorkspacePipelineResponse> {
-  try {
-    return await apiFetch<WorkspacePipelineResponse>("/workspace/pipeline", {
-      method: "POST",
-      body: payload,
-    });
-  } catch {
-    options.onStageChange?.("generating", "Generating molecules...");
-    await sleep(2000);
+  const data = await apiFetch<{ experiment_id: string }>("/pipeline/run", {
+    method: "POST",
+    body: payload,
+  });
 
-    options.onStageChange?.("docking", "Docking started...");
-    await sleep(2000);
-
-    options.onStageChange?.("completed", "Full pipeline completed.");
-
-    return {
-      runId: createPlaceholderRunId("pipe"),
-      stage: "completed",
-      message: "Full pipeline completed.",
-    };
+  if (!data.experiment_id) {
+    throw new ApiError("Invalid pipeline response", undefined, data);
   }
+
+  return {
+    experimentId: data.experiment_id,
+  };
+}
+
+/** Persist a pipeline experiment record in the backend experiments store. */
+export async function createPipelineExperiment(
+  payload: CreatePipelineExperimentRequest
+): Promise<PipelineExperimentItem> {
+  return apiFetch<PipelineExperimentItem>("/pipeline/experiments", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+/** Fetch a pipeline result for a given experiment id. */
+export async function getPipelineResult(experimentId: string): Promise<unknown> {
+  return apiFetch<unknown>(`/pipeline/results/${encodeURIComponent(experimentId)}`);
+}
+
+/** Fetch current status for a given pipeline experiment id. */
+export async function getPipelineStatus(
+  experimentId: string
+): Promise<WorkspacePipelineStatusResponse> {
+  return apiFetch<WorkspacePipelineStatusResponse>(
+    `/pipeline/status/${encodeURIComponent(experimentId)}`
+  );
+}
+
+/** Fetch experiment history from the backend pipeline router. */
+export async function getPipelineExperiments(): Promise<PipelineExperimentItem[]> {
+  const data = await apiFetch<PipelineExperimentsResponse>("/pipeline/experiments");
+  return Array.isArray(data.experiments) ? data.experiments : [];
 }

@@ -47,10 +47,10 @@ export default function SimilarityPage() {
   return (
     <div className="flex h-full flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h1 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
           Similarity Search
         </h1>
-        <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-0.5 text-sm" style={{ color: "var(--muted-text)" }}>
           Search nearest molecules by SMILES and inspect results.
         </p>
       </div>
@@ -58,7 +58,7 @@ export default function SimilarityPage() {
       <SearchBar isLoading={isLoading} onSearch={handleSearch} />
 
       {error ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+        <div className="rounded-lg border px-4 py-2 text-sm" style={{ borderColor: "var(--error)", background: "var(--error-bg)", color: "var(--error-text)" }}>
           {error}
         </div>
       ) : null}

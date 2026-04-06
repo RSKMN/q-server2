@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardHeader } from "@/components/ui";
-import { createExperiment, generateMolecules, runDocking, runPipeline } from "@/services";
+import { createPipelineExperiment, runDocking, runPipeline } from "@/services";
 import { useWorkspaceStore } from "@/store";
 import type { IntermediateResultItem } from "@/store/workspaceStore";
-import type { ExperimentRecord } from "@/types";
 
 type WorkspaceAction = "generate" | "docking" | "pipeline";
 
@@ -30,20 +30,21 @@ const actionConfig: Array<{
   {
     key: "pipeline",
     label: "Run Full Pipeline",
-    loadingText: "Running Full Pipeline...",
+    loadingText: "Running...",
     variant: "primary",
   },
 ];
 
 export default function WorkspaceActionButtons() {
   const actionLockRef = useRef(false);
+  const router = useRouter();
 
   const pipelineState = useWorkspaceStore((s) => s.pipelineState);
   const lastAction = useWorkspaceStore((s) => s.lastAction);
   const startAction = useWorkspaceStore((s) => s.startAction);
-  const setPipelineState = useWorkspaceStore((s) => s.setPipelineState);
   const setCompleted = useWorkspaceStore((s) => s.setCompleted);
   const setError = useWorkspaceStore((s) => s.setError);
+  const setLastExperimentId = useWorkspaceStore((s) => s.setLastExperimentId);
   const clearLogs = useWorkspaceStore((s) => s.clearLogs);
   const appendLog = useWorkspaceStore((s) => s.appendLog);
   const setIntermediateResults = useWorkspaceStore((s) => s.setIntermediateResults);
@@ -102,6 +103,40 @@ export default function WorkspaceActionButtons() {
           ? "pipeline"
           : null;
 
+  const handleRunPipeline = async () => {
+    if (runningAction || actionLockRef.current) {
+      return;
+    }
+
+    actionLockRef.current = true;
+    startAction("pipeline");
+    clearLogs();
+    setIntermediateResults(buildInitialResults("pipeline"));
+    appendLog(timestamped(`Action accepted: ${actionLogLabel.pipeline}`));
+
+    try {
+      const response = await runPipeline({
+        protein: workspaceInput.protein,
+        constraints: workspaceInput.constraints,
+      });
+      await createPipelineExperiment({
+        experiment_id: response.experimentId,
+        protein: workspaceInput.protein,
+      });
+
+      setLastExperimentId(response.experimentId);
+      appendLog(timestamped(`Pipeline run started: ${response.experimentId}`));
+      setCompleted();
+      router.push(`/results/${response.experimentId}`);
+    } catch {
+      const errorMessage = "Failed to trigger the selected pipeline action.";
+      appendLog(timestamped(`Error: ${errorMessage}`));
+      setError(errorMessage);
+    } finally {
+      actionLockRef.current = false;
+    }
+  };
+
   const handleActionClick = async (action: WorkspaceAction) => {
     if (runningAction || actionLockRef.current) {
       return;
@@ -115,98 +150,21 @@ export default function WorkspaceActionButtons() {
     appendLog(timestamped(`Action accepted: ${actionLogLabel[action]}`));
 
     try {
-      if (action === "pipeline") {
-        await runPipeline({}, {
-          onStageChange: (stage, message) => {
-            if (stage === "generating" || stage === "docking") {
-              setPipelineState(stage);
-            }
-
-            if (stage === "generating") {
-              const generationProgress = useWorkspaceStore
-                .getState()
-                .intermediateResults.map((item, index) => {
-                  if (index === 0) {
-                    return {
-                      ...item,
-                      value: "124 candidates generated",
-                      status: "ready" as const,
-                      progress: 100,
-                    };
-                  }
-
-                  return {
-                    ...item,
-                    status: "processing" as const,
-                    progress: Math.max(item.progress, 45),
-                  };
-                });
-              setIntermediateResults(generationProgress);
-            }
-
-            if (stage === "docking") {
-              const dockingProgress = useWorkspaceStore
-                .getState()
-                .intermediateResults.map((item, index) => {
-                  if (index === 1) {
-                    return {
-                      ...item,
-                      value: "Docking workers running on top 40 molecules",
-                      status: "processing" as const,
-                      progress: Math.max(item.progress, 70),
-                    };
-                  }
-
-                  return item;
-                });
-              setIntermediateResults(dockingProgress);
-            }
-
-            appendLog(timestamped(message));
-          },
+      if (action === "generate") {
+        const response = await runPipeline({
+          protein: workspaceInput.protein,
+          constraints: {},
+        });
+        await createPipelineExperiment({
+          experiment_id: response.experimentId,
+          protein: workspaceInput.protein,
         });
 
-        const finalizedPipelineResults = useWorkspaceStore.getState().intermediateResults.map((item, index) => ({
-          ...item,
-          value:
-            index === 1
-              ? "Top affinity: -10.7 kcal/mol"
-              : index === 2
-                ? "Ranking stabilized for top 20 candidates"
-                : item.value,
-          status: "ready" as const,
-          progress: 100,
-        }));
-        setIntermediateResults(finalizedPipelineResults);
-
-        const topHit = finalizedPipelineResults[1]?.value ?? "Pending";
-        const completedExperiment: ExperimentRecord = {
-          id: `EXP-${Date.now()}`,
-          name: "Workspace Full Pipeline Run",
-          input: workspaceInput,
-          status: "Completed",
-          createdAt: new Date().toISOString(),
-          pipelineStages: {
-            generated: "completed",
-            docking: "completed",
-            simulation: "completed",
-            quantum: "completed",
-          },
-          resultsSummary: {
-            overview: "Pipeline completed successfully from Workspace action controls.",
-            topHit,
-            hitRate: 10.4,
-            shortlistedCandidates: 20,
-          },
-        };
-        await createExperiment(completedExperiment);
+        setLastExperimentId(response.experimentId);
+        appendLog(timestamped(`Pipeline run started: ${response.experimentId}`));
         setCompleted();
+        router.push(`/results/${response.experimentId}`);
         return;
-      }
-
-      if (action === "generate") {
-        const response = await generateMolecules({});
-        appendLog(timestamped(response.message));
       }
 
       if (action === "docking") {
@@ -237,11 +195,11 @@ export default function WorkspaceActionButtons() {
   const isBusy = runningAction !== null;
 
   return (
-    <Card className="border-slate-800 bg-slate-900/80 shadow-xl shadow-slate-950/40 transition-all duration-300">
+    <Card className="shadow-xl shadow-slate-950/40 transition-all duration-300" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
       <CardHeader>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Actions</p>
-        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-100">Execution Controls</h2>
-        <p className="mt-1.5 text-xs leading-6 text-slate-400">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Actions</p>
+        <h2 className="mt-1 text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Execution Controls</h2>
+        <p className="mt-1.5 text-xs leading-6" style={{ color: "var(--muted-text)" }}>
           Launch a focused step or run the complete discovery pipeline.
         </p>
       </CardHeader>
@@ -249,6 +207,7 @@ export default function WorkspaceActionButtons() {
       <CardContent className="grid gap-3.5 sm:grid-cols-2">
         {actionConfig.map((action) => {
           const isCurrent = runningAction === action.key;
+          const isRunButton = action.key === "pipeline";
 
           return (
             <Button
@@ -256,10 +215,10 @@ export default function WorkspaceActionButtons() {
               type="button"
               variant={action.variant}
               className={action.key === "pipeline" ? "sm:col-span-2 shadow-[0_0_24px_-14px_rgba(56,189,248,0.7)]" : undefined}
-              onClick={() => handleActionClick(action.key)}
+              onClick={isRunButton ? handleRunPipeline : () => handleActionClick(action.key)}
               isLoading={isCurrent}
               loadingText={action.loadingText}
-              disabled={isBusy && !isCurrent}
+              disabled={isRunButton ? isBusy : isBusy && !isCurrent}
             >
               {action.label}
             </Button>

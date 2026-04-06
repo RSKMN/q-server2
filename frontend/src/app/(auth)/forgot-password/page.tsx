@@ -44,8 +44,8 @@ export default function ForgotPasswordPage() {
   return (
     <section className="space-y-6">
       <header className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-100">Forgot password</h2>
-        <p className="text-sm text-slate-400">We will send a reset link to your email.</p>
+        <h2 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Forgot password</h2>
+        <p className="text-sm" style={{ color: "var(--muted-text)" }}>We will send a reset link to your email.</p>
       </header>
 
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
@@ -78,9 +78,9 @@ export default function ForgotPasswordPage() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-slate-400">
+      <p className="text-center text-sm" style={{ color: "var(--muted-text)" }}>
         Remembered your password?{" "}
-        <Link href="/login" className="transition hover:text-cyan-300">
+        <Link href="/login" className="transition" style={{ color: "var(--accent)" }}>
           Back to sign in
         </Link>
       </p>

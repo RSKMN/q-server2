@@ -92,11 +92,11 @@ export default function WorkspaceInputPanel() {
   }, [logP, proteinSequence, qed, setWorkspaceInput, toxicity]);
 
   return (
-    <Card className="border-slate-800 bg-slate-900/80 shadow-xl shadow-slate-950/40 transition-all duration-300">
+    <Card className="shadow-xl shadow-slate-950/40 transition-all duration-300" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
       <CardHeader>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-300/80">Input</p>
-        <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-100">Protein + Constraints</h2>
-        <p className="mt-1.5 text-xs leading-6 text-slate-400">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Input</p>
+        <h2 className="mt-1 text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Protein + Constraints</h2>
+        <p className="mt-1.5 text-xs leading-6" style={{ color: "var(--muted-text)" }}>
           Define biological context and property thresholds before launching a run.
         </p>
       </CardHeader>
@@ -112,10 +112,10 @@ export default function WorkspaceInputPanel() {
           placeholder="MENFQKVEKIGEGTYGVVYKARNKLTGE..."
         />
 
-        <Card className="border-slate-700/80 bg-slate-950/60 transition-all duration-300">
+        <Card className="transition-all duration-300" style={{ backgroundColor: "var(--muted-bg)", borderColor: "var(--border)" }}>
           <CardHeader className="px-4 py-3">
-            <h3 className="text-sm font-semibold text-slate-100">Constraints</h3>
-            <p className="mt-1 text-xs text-slate-400">Tune chemistry and safety bounds for candidate generation.</p>
+            <h3 className="text-sm font-semibold" style={{ color: "var(--text)" }}>Constraints</h3>
+            <p className="mt-1 text-xs" style={{ color: "var(--muted-text)" }}>Tune chemistry and safety bounds for candidate generation.</p>
           </CardHeader>
           <CardContent className="grid gap-4 px-4 py-4">
             <NumberSliderField

@@ -155,10 +155,10 @@ export default function ResultsPage() {
 
       <div className="ui-state-transition relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="page-title text-slate-100 sm:text-3xl">
+          <h1 className="page-title sm:text-3xl" style={{ color: "var(--text)" }}>
             Results Research Dashboard
           </h1>
-          <p className="page-subtitle mt-1 text-slate-400">
+          <p className="page-subtitle mt-1" style={{ color: "var(--muted-text)" }}>
             Consolidated evidence across candidate generation, docking, simulation, and quantum analysis.
           </p>
         </div>

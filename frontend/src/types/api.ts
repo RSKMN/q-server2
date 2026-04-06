@@ -165,6 +165,8 @@ export interface SimulationResult {
 export interface QuantumResult {
   molecule_id: string;
   smiles: string;
+  homo?: number;
+  lumo?: number;
   homo_lumo_gap: number;
   qsvm_score: number;
   stability_score: number;

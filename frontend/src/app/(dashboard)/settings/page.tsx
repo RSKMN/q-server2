@@ -4,9 +4,9 @@ export default function SettingsPage() {
   return (
     <div className="page-shell">
       <header className="page-header">
-        <p className="page-kicker text-cyan-300/80">Settings</p>
-        <h1 className="page-title text-slate-100">Workspace Settings</h1>
-        <p className="page-subtitle text-slate-400">
+        <p className="page-kicker" style={{ color: "var(--accent)" }}>Settings</p>
+        <h1 className="page-title" style={{ color: "var(--text)" }}>Workspace Settings</h1>
+        <p className="page-subtitle" style={{ color: "var(--muted-text)" }}>
           Configure your research workspace defaults and environment preferences.
         </p>
       </header>

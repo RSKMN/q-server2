@@ -5,12 +5,18 @@ import WorkspaceOutputPanel from "@/components/workspace/WorkspaceOutputPanel";
 export default function WorkspacePage() {
   return (
     <div className="page-shell max-w-[1500px]">
-      <div className="rounded-2xl border border-cyan-400/15 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40 p-7 shadow-[0_20px_90px_-40px_rgba(56,189,248,0.45)] transition-shadow duration-300">
-        <p className="page-kicker text-cyan-300/80">AI Workspace</p>
-        <h1 className="page-title mt-2 text-slate-100 sm:text-[2.05rem]">
+      <div
+        className="rounded-2xl border p-7 shadow-[0_20px_90px_-40px_rgba(56,189,248,0.45)] transition-shadow duration-300"
+        style={{
+          borderColor: "color-mix(in srgb, var(--accent) 20%, var(--border))",
+          background: "linear-gradient(90deg, color-mix(in srgb, var(--bg) 20%, var(--card)), color-mix(in srgb, var(--accent) 8%, var(--card)), color-mix(in srgb, var(--accent) 14%, var(--bg)))",
+        }}
+      >
+        <p className="page-kicker" style={{ color: "var(--accent)" }}>AI Workspace</p>
+        <h1 className="page-title mt-2 sm:text-[2.05rem]" style={{ color: "var(--text)" }}>
           Drug Discovery Control Panel
         </h1>
-        <p className="page-subtitle mt-3 max-w-3xl text-slate-300 sm:text-[0.95rem]">
+        <p className="page-subtitle mt-3 max-w-3xl sm:text-[0.95rem]" style={{ color: "var(--muted-text)" }}>
           Configure generation tasks, monitor live execution logs, and evaluate high-priority molecular
           candidates in one unified workspace.
         </p>

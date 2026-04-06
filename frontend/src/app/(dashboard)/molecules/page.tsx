@@ -71,19 +71,19 @@ export default function MoleculesPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--text)" }}>
           Molecule Explorer
         </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-sm" style={{ color: "var(--muted-text)" }}>
           {filteredMolecules.length} molecules
         </p>
       </div>
 
-      <div className="mb-4 space-y-4 rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-[#1e293b] dark:bg-[#0b0f19]/90">
+      <div className="mb-4 space-y-4 rounded-xl border p-4 shadow-sm backdrop-blur-sm" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1 max-w-sm">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--muted-text)" }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -91,7 +91,8 @@ export default function MoleculesPage() {
               type="text"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              className="block w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-500 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-[#1e293b] dark:bg-[#0b0f19] dark:text-slate-200"
+              className="block w-full rounded-lg border py-2 pl-10 pr-3 text-sm focus:outline-none focus:ring-1"
+              style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--text)", caretColor: "var(--accent)" }}
               placeholder="Search by ID, name, or SMILES..."
             />
           </div>
@@ -100,7 +101,8 @@ export default function MoleculesPage() {
             <select
               value={dataset}
               onChange={(event) => setDataset(event.target.value)}
-              className="h-[38px] cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-[#1e293b] dark:bg-[#0b0f19] dark:text-slate-200"
+              className="h-[38px] cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium focus:outline-none focus:ring-1"
+              style={{ borderColor: "var(--border)", background: "var(--bg)", color: "var(--text)" }}
             >
               {datasets.map((entry) => (
                 <option key={entry} value={entry}>
@@ -112,7 +114,8 @@ export default function MoleculesPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="flex h-[38px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-all hover:-translate-y-px hover:bg-slate-50 dark:border-[#1e293b] dark:bg-[#0b0f19] dark:text-slate-200 dark:hover:bg-[#1e293b]"
+              className="flex h-[38px] items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-all hover:-translate-y-px"
+              style={{ borderColor: "var(--border)", background: "var(--card)", color: "var(--text)" }}
             >
               Reset
             </button>
@@ -120,8 +123,8 @@ export default function MoleculesPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-[#1e293b] dark:bg-[#020617]">
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+          <div className="rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--muted-bg)" }}>
+            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>
               <span>MW Range</span>
               <span>{mwMin} - {mwMax}</span>
             </div>
@@ -132,7 +135,8 @@ export default function MoleculesPage() {
                 max={mwBounds.max}
                 value={mwMin}
                 onChange={(event) => setMwMin(Math.min(Number(event.target.value), mwMax))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full"
+                style={{ background: "color-mix(in srgb, var(--border) 75%, var(--bg))" }}
               />
               <input
                 type="range"
@@ -140,13 +144,14 @@ export default function MoleculesPage() {
                 max={mwBounds.max}
                 value={mwMax}
                 onChange={(event) => setMwMax(Math.max(Number(event.target.value), mwMin))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full"
+                style={{ background: "color-mix(in srgb, var(--border) 75%, var(--bg))" }}
               />
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-[#1e293b] dark:bg-[#020617]">
-            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+          <div className="rounded-lg border p-3" style={{ borderColor: "var(--border)", background: "var(--muted-bg)" }}>
+            <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>
               <span>LogP Range</span>
               <span>{logpMin.toFixed(1)} - {logpMax.toFixed(1)}</span>
             </div>
@@ -158,7 +163,8 @@ export default function MoleculesPage() {
                 step={0.1}
                 value={logpMin}
                 onChange={(event) => setLogpMin(Math.min(Number(event.target.value), logpMax))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full"
+                style={{ background: "color-mix(in srgb, var(--border) 75%, var(--bg))" }}
               />
               <input
                 type="range"
@@ -167,14 +173,15 @@ export default function MoleculesPage() {
                 step={0.1}
                 value={logpMax}
                 onChange={(event) => setLogpMax(Math.max(Number(event.target.value), logpMin))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full"
+                style={{ background: "color-mix(in srgb, var(--border) 75%, var(--bg))" }}
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 rounded-xl border border-slate-200 bg-white shadow-lg dark:border-[#1e293b] dark:bg-[#0b0f19] overflow-hidden flex flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-lg" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
         <MoleculeTable
           data={filteredMolecules}
           isLoading={isLoading}

@@ -12,16 +12,27 @@ export interface ButtonProps
 }
 
 const BASE_STYLES =
-  "inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
-const VARIANT_STYLES: Record<ButtonVariant, string> = {
-  primary:
-    "bg-cyan-400 text-slate-950 hover:bg-cyan-300 disabled:hover:bg-cyan-400",
-  secondary:
-    "bg-slate-800 text-slate-100 hover:bg-slate-700 disabled:hover:bg-slate-800",
-  outline:
-    "border border-slate-600 bg-transparent text-slate-100 hover:bg-slate-800/60 disabled:hover:bg-transparent",
-  ghost: "bg-transparent text-slate-200 hover:bg-slate-800/50 disabled:hover:bg-transparent",
+const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
+  primary: {
+    backgroundColor: "var(--accent)",
+    color: "var(--bg)",
+  },
+  secondary: {
+    backgroundColor: "var(--card)",
+    color: "var(--text)",
+    border: `1px solid var(--border)`,
+  },
+  outline: {
+    backgroundColor: "transparent",
+    color: "var(--text)",
+    border: `1px solid var(--border)`,
+  },
+  ghost: {
+    backgroundColor: "transparent",
+    color: "var(--text)",
+  },
 };
 
 const SIZE_STYLES: Record<ButtonSize, string> = {
@@ -44,6 +55,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     disabled,
     children,
     type = "button",
+    style,
     ...props
   },
   ref,
@@ -57,10 +69,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={isDisabled}
       className={joinClasses(
         BASE_STYLES,
-        VARIANT_STYLES[variant],
         SIZE_STYLES[size],
         className,
       )}
+      style={{
+        ...VARIANT_STYLES[variant],
+        ...style,
+      }}
       aria-busy={isLoading}
       {...props}
     >

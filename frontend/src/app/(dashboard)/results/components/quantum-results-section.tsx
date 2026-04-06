@@ -30,6 +30,13 @@ function matchesSearch(candidate: QuantumResult, searchQuery: string): boolean {
   return [candidate.molecule_id, candidate.smiles].join(" ").toLowerCase().includes(normalized);
 }
 
+function formatNumber(value: number | undefined, digits: number): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "N/A";
+  }
+  return value.toFixed(digits);
+}
+
 export function QuantumResultsSection({
   items,
   searchQuery,
@@ -73,11 +80,10 @@ export function QuantumResultsSection({
 
   const csvRows = sortedCandidates.map((candidate) => ({
     "Molecule ID": candidate.molecule_id,
-    SMILES: candidate.smiles,
-    "HOMO-LUMO Gap (eV)": candidate.homo_lumo_gap.toFixed(2),
-    "QSVM Score": candidate.qsvm_score.toFixed(3),
-    "Stability Score": candidate.stability_score.toFixed(3),
-    Interpretation: candidate.interpretation,
+    Homo: formatNumber(candidate.homo, 3),
+    Lumo: formatNumber(candidate.lumo, 3),
+    Gap: candidate.homo_lumo_gap.toFixed(3),
+    Stability: candidate.interpretation,
   }));
 
   if (sortedCandidates.length === 0) {
@@ -95,20 +101,19 @@ export function QuantumResultsSection({
         <div>
           <h2 className="text-lg font-semibold text-slate-100">Quantum Results</h2>
           <p className="mt-1 text-xs text-slate-400">
-            API placeholder quantum screening summary using HOMO-LUMO gap, QSVM score, and stability score.
+            Table view for electronic energy levels and stability classifications.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <p className="text-xs text-slate-400">Top candidates highlighted for quick review</p>
+          <p className="text-xs text-slate-400">Export current filtered table</p>
           <CsvDownloadButton
             filename="quantum-results.csv"
             columns={[
               "Molecule ID",
-              "SMILES",
-              "HOMO-LUMO Gap (eV)",
-              "QSVM Score",
-              "Stability Score",
-              "Interpretation",
+              "Homo",
+              "Lumo",
+              "Gap",
+              "Stability",
             ]}
             rows={csvRows}
             disabled={csvRows.length === 0}
@@ -116,73 +121,38 @@ export function QuantumResultsSection({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {sortedCandidates.map((candidate, index) => {
-          const isTop = index < 3;
-          const compositeScore = candidate.homo_lumo_gap * 0.4 + candidate.qsvm_score * 3 + candidate.stability_score * 3;
-
-          return (
-            <article
-              key={candidate.molecule_id}
-              className={[
-                "rounded-xl border p-4",
-                isTop
-                  ? "border-cyan-300/40 bg-cyan-500/10 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]"
-                  : "border-white/10 bg-slate-950/60",
-              ].join(" ")}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-100">{candidate.molecule_id}</p>
-                  <p className="mt-1 text-xs text-slate-400">Composite quantum score {compositeScore.toFixed(2)}</p>
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {isTop ? (
-                    <span className="rounded-full border border-cyan-300/40 bg-cyan-500/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-cyan-100">
-                      Top {index + 1}
-                    </span>
-                  ) : null}
+      <div className="mt-4 overflow-x-auto rounded-xl border border-white/10 bg-slate-950/60">
+        <table className="w-full min-w-[640px] text-left">
+          <thead>
+            <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.12em] text-slate-400">
+              <th className="px-3 py-3 font-medium">Molecule ID</th>
+              <th className="px-3 py-3 font-medium">Homo</th>
+              <th className="px-3 py-3 font-medium">Lumo</th>
+              <th className="px-3 py-3 font-medium">Gap</th>
+              <th className="px-3 py-3 font-medium">Stability</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCandidates.map((candidate) => (
+              <tr key={candidate.molecule_id} className="border-t border-white/10">
+                <td className="px-3 py-3 font-mono text-xs text-slate-200">{candidate.molecule_id}</td>
+                <td className="px-3 py-3 text-sm text-slate-200">{formatNumber(candidate.homo, 3)}</td>
+                <td className="px-3 py-3 text-sm text-slate-200">{formatNumber(candidate.lumo, 3)}</td>
+                <td className="px-3 py-3 text-sm text-slate-200">{candidate.homo_lumo_gap.toFixed(3)}</td>
+                <td className="px-3 py-3 text-sm">
                   <span
                     className={[
-                      "rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                      "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]",
                       getInterpretationClass(candidate.interpretation),
                     ].join(" ")}
                   >
                     {candidate.interpretation}
                   </span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-400">HOMO-LUMO Gap</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-100">{candidate.homo_lumo_gap.toFixed(2)} eV</p>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-400">QSVM Score</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-100">{candidate.qsvm_score.toFixed(3)}</p>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-slate-900/70 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-400">Stability Score</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-100">{candidate.stability_score.toFixed(3)}</p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                  Interpretation
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  {candidate.interpretation === "Highly Stable"
-                    ? "Strong electronic separation and high stability suggest a robust candidate for downstream validation."
-                    : candidate.interpretation === "Stable"
-                      ? "Balanced quantum descriptors support progression, with good stability and acceptable classifier confidence."
-                      : "Candidate remains promising but should be monitored for improved electronic stability in follow-up screens."}
-                </p>
-              </div>
-            </article>
-          );
-        })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   );

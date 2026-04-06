@@ -23,7 +23,7 @@ const steps = [
 
 export function WorkflowSection() {
   return (
-    <section className="rounded-3xl border border-border/70 bg-surface/60 px-6 py-12 md:px-10 md:py-14">
+    <section id="workflow" className="rounded-3xl border border-border/70 bg-surface/60 px-6 py-12 md:px-10 md:py-14">
       <h2 className="font-heading text-3xl text-text md:text-4xl">Workflow</h2>
       <p className="mt-4 max-w-3xl font-body text-base leading-7 text-text-muted">
         From idea generation to quantum validation, each stage narrows the search

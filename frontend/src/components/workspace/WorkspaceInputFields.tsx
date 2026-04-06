@@ -39,7 +39,7 @@ function HelperText({ text }: { text?: string }) {
     return null;
   }
 
-  return <p className="mt-1.5 text-xs leading-5 text-slate-400">{text}</p>;
+  return <p className="mt-1.5 text-xs leading-5" style={{ color: "var(--muted-text)" }}>{text}</p>;
 }
 
 export function ProteinSequenceField({
@@ -67,7 +67,7 @@ export function ProteinSequenceField({
         aria-describedby={helperText ? helperId : undefined}
       />
       {helperText ? (
-        <p id={helperId} className="mt-1.5 text-xs leading-5 text-slate-400">
+        <p id={helperId} className="mt-1.5 text-xs leading-5" style={{ color: "var(--muted-text)" }}>
           {helperText}
         </p>
       ) : null}
@@ -100,7 +100,8 @@ export function NumberSliderField({
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
           disabled={disabled}
-          className="h-2 cursor-pointer appearance-none rounded-full border-none bg-slate-800 px-0 py-0 accent-cyan-400"
+          className="h-2 cursor-pointer appearance-none rounded-full border-none px-0 py-0"
+          style={{ backgroundColor: "var(--muted-bg)", accentColor: "var(--accent)" }}
           label={label}
           aria-describedby={helperText ? helperId : undefined}
         />
@@ -119,12 +120,12 @@ export function NumberSliderField({
           aria-describedby={helperText ? helperId : undefined}
         />
       </div>
-      <div className="flex justify-between text-[11px] text-slate-500">
+      <div className="flex justify-between text-[11px]" style={{ color: "var(--muted-text)" }}>
         <span>{min}</span>
         <span>{max}</span>
       </div>
       {helperText ? (
-        <p id={helperId} className="text-xs leading-5 text-slate-400">
+        <p id={helperId} className="text-xs leading-5" style={{ color: "var(--muted-text)" }}>
           {helperText}
         </p>
       ) : null}
@@ -137,7 +138,7 @@ export function SelectField({ id, label, helperText, value, onChange, options, d
 
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-medium text-slate-200">
+      <label htmlFor={id} className="mb-2 block text-sm font-medium" style={{ color: "var(--text)" }}>
         {label}
       </label>
       <select
@@ -146,7 +147,13 @@ export function SelectField({ id, label, helperText, value, onChange, options, d
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
         aria-describedby={helperText ? helperId : undefined}
-        className="w-full rounded-lg border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-100 transition hover:border-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-lg border px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+        style={{
+          borderColor: "var(--border)",
+          backgroundColor: "var(--card)",
+          color: "var(--text)",
+          accentColor: "var(--accent)",
+        }}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

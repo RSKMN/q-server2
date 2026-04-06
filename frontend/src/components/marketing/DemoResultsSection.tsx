@@ -42,7 +42,7 @@ export function DemoResultsSection() {
         Demo Results
       </h2>
       <p className="mt-4 max-w-3xl font-body text-base leading-7 text-text-muted">
-        Mock screening output from QuinfosysTM QuDrugForge, Quantum AI for Drug
+        Mock screening output from Quinfosys<span style={{ verticalAlign: "super", fontSize: "0.65em", lineHeight: 0 }}>™</span> QuDrugForge, Quantum AI for Drug
         Discovery, showing top-ranked molecules, predicted binding performance,
         and drug-likeness signals.
       </p>

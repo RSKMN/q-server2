@@ -3,6 +3,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useCopilotChatStore, useWorkspaceStore } from "@/store";
 import type { IntermediateResultItem, PipelineAction, PipelineState } from "@/store";
+import { createPipelineExperiment, getPipelineResult, runPipeline, toFriendlyErrorMessage } from "@/services/api";
 import DynamicCanvasPanel, { CanvasView } from "./components/DynamicCanvasPanel";
 
 type CopilotContext =
@@ -143,6 +144,70 @@ function inferPipelineCommand(input: string): PipelineCommandRule | null {
   return null;
 }
 
+function isGenerateMoleculesCommand(input: string): boolean {
+  return input.toLowerCase().includes("generate");
+}
+
+function isShowResultsCommand(input: string): boolean {
+  return input.toLowerCase().includes("show results");
+}
+
+function extractExperimentIdFromCommand(input: string): string | null {
+  const explicitMatch = input.match(
+    /show results(?:\s+(?:for|id|experiment))?\s*[:#-]?\s*([A-Za-z0-9._-]{6,})/i
+  );
+  if (explicitMatch?.[1]) {
+    return explicitMatch[1];
+  }
+
+  const uuidMatch = input.match(
+    /([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})/i
+  );
+  if (uuidMatch?.[1]) {
+    return uuidMatch[1];
+  }
+
+  return null;
+}
+
+function summarizeResultsPayload(payload: unknown): string {
+  if (!payload || typeof payload !== "object") {
+    return "Results were returned by the backend.";
+  }
+
+  const data = payload as Record<string, unknown>;
+  const generated = Array.isArray(data.generated_molecules)
+    ? data.generated_molecules.length
+    : Array.isArray(data.generated)
+      ? data.generated.length
+      : null;
+  const filtered = Array.isArray(data.filtered_candidates)
+    ? data.filtered_candidates.length
+    : Array.isArray(data.filtered)
+      ? data.filtered.length
+      : null;
+  const docking = Array.isArray(data.docking_results)
+    ? data.docking_results.length
+    : Array.isArray(data.docking)
+      ? data.docking.length
+      : null;
+
+  const parts: string[] = [];
+  if (generated !== null) {
+    parts.push(`generated=${generated}`);
+  }
+  if (filtered !== null) {
+    parts.push(`filtered=${filtered}`);
+  }
+  if (docking !== null) {
+    parts.push(`docking=${docking}`);
+  }
+
+  return parts.length > 0
+    ? `Result summary (${parts.join(", ")}).`
+    : "Results were returned by the backend.";
+}
+
 function buildInitialResults(action: PipelineAction): IntermediateResultItem[] {
   if (action === "generate") {
     return [
@@ -184,6 +249,9 @@ export default function CopilotPage() {
   const appendLog = useWorkspaceStore((state) => state.appendLog);
   const setIntermediateResults = useWorkspaceStore((state) => state.setIntermediateResults);
   const updateIntermediateResult = useWorkspaceStore((state) => state.updateIntermediateResult);
+  const workspaceInput = useWorkspaceStore((state) => state.workspaceInput);
+  const lastExperimentId = useWorkspaceStore((state) => state.lastExperimentId);
+  const setLastExperimentId = useWorkspaceStore((state) => state.setLastExperimentId);
 
   const contextBadges = useMemo(
     () =>
@@ -421,7 +489,133 @@ export default function CopilotPage() {
     }, 3600);
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function runGenerateMoleculesCommand(context: CopilotContext) {
+    if (isPipelineRunning(pipelineState)) {
+      appendMessage({
+        role: "assistant",
+        content: "A pipeline task is already running. Please wait for completion.",
+      });
+      return;
+    }
+
+    setIsAiThinking(true);
+    startAction("pipeline");
+    clearLogs();
+    setIntermediateResults([
+      {
+        id: "pipeline-submit",
+        label: "Pipeline Submission",
+        value: "Submitting to backend",
+        status: "processing",
+        progress: 35,
+      },
+    ]);
+    appendLog("Command accepted: generate molecules");
+
+    const toolCallId = appendMessage({
+      role: "assistant",
+      content: "Running: POST /pipeline/run",
+      kind: "tool-call",
+      status: "running",
+      toolName: "pipeline_run",
+    });
+
+    try {
+      const response = await runPipeline({
+        protein: workspaceInput.protein,
+        constraints: workspaceInput.constraints,
+      });
+      await createPipelineExperiment({
+        experiment_id: response.experimentId,
+        protein: workspaceInput.protein,
+      });
+
+      setLastExperimentId(response.experimentId);
+      setPipelineState("running_full_pipeline");
+      updateIntermediateResult("pipeline-submit", {
+        status: "ready",
+        progress: 100,
+        value: `Accepted (experiment ${response.experimentId})`,
+      });
+      appendLog(`Pipeline started: ${response.experimentId}`);
+
+      updateMessage(toolCallId, {
+        content: "Completed: POST /pipeline/run",
+        status: "completed",
+      });
+      appendMessage({
+        role: "assistant",
+        content: "Pipeline started...",
+      });
+      appendMessage({
+        role: "assistant",
+        content: `Experiment ID: ${response.experimentId}`,
+      });
+      setActiveView("results-table");
+      setActiveContext(context);
+    } catch (error) {
+      const message = toFriendlyErrorMessage(error, "Failed to start molecule generation.");
+      setPipelineState("error");
+      appendLog(`Pipeline start failed: ${message}`);
+      updateMessage(toolCallId, {
+        content: "Failed: POST /pipeline/run",
+        status: "completed",
+      });
+      appendMessage({ role: "assistant", content: message });
+    } finally {
+      setIsAiThinking(false);
+    }
+  }
+
+  async function runShowResultsCommand(rawInput: string, context: CopilotContext) {
+    const requestedId = extractExperimentIdFromCommand(rawInput) ?? lastExperimentId;
+    if (!requestedId) {
+      appendMessage({
+        role: "assistant",
+        content:
+          "No experiment id was found. Run \"generate molecules\" first or use \"show results <experiment_id>\".",
+      });
+      return;
+    }
+
+    setIsAiThinking(true);
+    appendMessage({ role: "assistant", content: "Fetching results..." });
+    const toolCallId = appendMessage({
+      role: "assistant",
+      content: `Running: GET /pipeline/results/${requestedId}`,
+      kind: "tool-call",
+      status: "running",
+      toolName: "pipeline_results",
+    });
+
+    try {
+      const payload = await getPipelineResult(requestedId);
+      setLastExperimentId(requestedId);
+      const summary = summarizeResultsPayload(payload);
+
+      updateMessage(toolCallId, {
+        content: `Completed: GET /pipeline/results/${requestedId}`,
+        status: "completed",
+      });
+      appendMessage({
+        role: "assistant",
+        content: `Results loaded for ${requestedId}. ${summary}`,
+      });
+      setActiveView("results-table");
+      setActiveContext(context);
+    } catch (error) {
+      const message = toFriendlyErrorMessage(error, `Failed to fetch results for ${requestedId}.`);
+      updateMessage(toolCallId, {
+        content: `Failed: GET /pipeline/results/${requestedId}`,
+        status: "completed",
+      });
+      appendMessage({ role: "assistant", content: message });
+    } finally {
+      setIsAiThinking(false);
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const content = input.trim();
@@ -429,10 +623,26 @@ export default function CopilotPage() {
       return;
     }
 
+    appendMessage({ role: "user", content });
+
+    if (isGenerateMoleculesCommand(content)) {
+      const context: CopilotContext = "molecule-analysis";
+      await runGenerateMoleculesCommand(context);
+      setActiveContext(context);
+      setInput("");
+      return;
+    }
+
+    if (isShowResultsCommand(content)) {
+      const context: CopilotContext = "similarity-search";
+      await runShowResultsCommand(content, context);
+      setActiveContext(context);
+      setInput("");
+      return;
+    }
+
     const pipelineCommand = inferPipelineCommand(content);
     if (pipelineCommand) {
-      appendMessage({ role: "user", content });
-
       if (isPipelineRunning(pipelineState)) {
         appendMessage({ role: "assistant", content: "A pipeline task is already running. Please wait for completion." });
       } else {
@@ -445,8 +655,6 @@ export default function CopilotPage() {
     }
 
     const inferred = inferContext(content);
-
-    appendMessage({ role: "user", content });
     queueAssistantReply(inferred);
     setActiveContext(inferred);
     setInput("");
@@ -481,20 +689,73 @@ export default function CopilotPage() {
 
   return (
     <div className="h-full min-h-0">
-      <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-[30%_70%]">
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-slate-900 to-slate-950">
-          <header className="border-b border-white/10 px-5 py-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-300/80">AI Copilot</p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-100">Scientific Chat</h2>
+      <div
+        className="mb-4 rounded-[28px] border p-5 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.35)] backdrop-blur-xl"
+        style={{
+          borderColor: "color-mix(in srgb, var(--border) 80%, var(--accent))",
+          background:
+            "linear-gradient(135deg, color-mix(in srgb, var(--card) 88%, transparent), color-mix(in srgb, var(--bg) 92%, var(--card)))",
+        }}
+      >
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-2">
+            <p className="text-[11px] uppercase tracking-[0.22em]" style={{ color: "var(--accent)" }}>
+              Virtual Scientific Lab
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: "var(--text)" }}>
+              AI Copilot Lab
+            </h1>
+            <p className="max-w-3xl text-sm leading-6" style={{ color: "var(--muted-text)" }}>
+              Orchestrate molecule generation, docking, and result review from one glass-morphism command surface.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { label: "Active Context", value: CONTEXT_LABELS[activeContext] },
+              { label: "Pipeline", value: pipelineState.replace(/_/g, " ") },
+              { label: "Experiment", value: lastExperimentId ?? "Not started" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-2xl border px-4 py-3 shadow-[0_10px_30px_-20px_rgba(15,23,42,0.35)]"
+                style={{
+                  borderColor: "var(--border)",
+                  backgroundColor: "color-mix(in srgb, var(--card) 88%, transparent)",
+                }}
+              >
+                <p className="text-[10px] uppercase tracking-[0.16em]" style={{ color: "var(--muted-text)" }}>
+                  {item.label}
+                </p>
+                <p className="mt-1 text-sm font-semibold" style={{ color: "var(--text)" }}>
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-[32%_68%]">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-[28px] border shadow-[0_24px_80px_-36px_rgba(15,23,42,0.28)] backdrop-blur-xl" style={{ borderColor: "var(--border)", backgroundColor: "color-mix(in srgb, var(--card) 88%, transparent)" }}>
+          <header className="border-b px-5 py-4" style={{ borderColor: "var(--border)" }}>
+            <p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: "var(--accent)" }}>Command Console</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Scientific Chat</h2>
           </header>
 
-          <div className="grid gap-2 border-b border-white/10 px-5 py-3">
+          <div className="grid gap-2 border-b px-5 py-3" style={{ borderColor: "var(--border)" }}>
             {QUICK_PROMPTS.map((prompt) => (
               <button
                 key={prompt}
                 type="button"
                 onClick={() => handlePromptClick(prompt)}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-xs font-medium text-slate-300 transition duration-300 hover:border-cyan-300/40 hover:bg-cyan-300/10 hover:text-cyan-100"
+                className="rounded-2xl border px-3 py-2 text-left text-xs font-medium transition duration-300"
+                style={{
+                  borderColor: "var(--border)",
+                  background:
+                    "linear-gradient(135deg, color-mix(in srgb, var(--card) 75%, var(--muted-bg)), color-mix(in srgb, var(--muted-bg) 92%, var(--card)))",
+                  color: "var(--text)",
+                }}
               >
                 {prompt}
               </button>
@@ -507,20 +768,20 @@ export default function CopilotPage() {
                 <div key={message.id} className="copilot-message-enter flex justify-start">
                   <article className={`copilot-tool-call w-full max-w-[94%] rounded-xl px-3 py-2.5 ${message.status === "running" ? "running" : ""}`}>
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 pl-2 text-xs text-amber-100">
-                        <span className="rounded-full border border-amber-200/45 bg-amber-100/10 px-2 py-0.5 font-semibold uppercase tracking-[0.12em]">
+                        <div className="flex items-center gap-2 pl-2 text-xs" style={{ color: "var(--warning)" }}>
+                          <span className="rounded-full border px-2 py-0.5 font-semibold uppercase tracking-[0.12em]" style={{ borderColor: "var(--warning)", backgroundColor: "var(--muted-bg)" }}>
                           Tool
                         </span>
-                        <span className="font-mono text-[12px] leading-5 text-amber-50/95">{message.content}</span>
+                          <span className="font-mono text-[12px] leading-5" style={{ color: "var(--text)" }}>{message.content}</span>
                       </div>
                       {message.status === "running" ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em] text-amber-200">
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-200 [animation-delay:-0.2s]" />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-200 [animation-delay:-0.1s]" />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-amber-200" />
+                          <span className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--warning)" }}>
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full" style={{ backgroundColor: "var(--warning)", animationDelay: "-0.2s" }} />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full" style={{ backgroundColor: "var(--warning)", animationDelay: "-0.1s" }} />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full" style={{ backgroundColor: "var(--warning)" }} />
                         </span>
                       ) : (
-                        <span className="text-[11px] uppercase tracking-[0.12em] text-emerald-200">Done</span>
+                          <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: "var(--success)" }}>Done</span>
                       )}
                     </div>
                   </article>
@@ -533,19 +794,23 @@ export default function CopilotPage() {
                 <article
                   className={
                     message.role === "assistant"
-                      ? "max-w-[92%] rounded-2xl rounded-bl-md border border-cyan-300/28 bg-gradient-to-br from-cyan-400/14 to-blue-500/9 px-3.5 py-3 shadow-[0_10px_30px_-18px_rgba(56,189,248,0.75)]"
-                      : "max-w-[88%] rounded-2xl rounded-br-md border border-violet-300/25 bg-gradient-to-br from-violet-400/20 to-fuchsia-500/10 px-3.5 py-3 shadow-[0_10px_30px_-18px_rgba(168,85,247,0.75)]"
+                      ? "max-w-[92%] rounded-2xl rounded-bl-md border px-3.5 py-3 shadow-[0_10px_30px_-18px_rgba(56,189,248,0.75)]"
+                      : "max-w-[88%] rounded-2xl rounded-br-md border px-3.5 py-3 shadow-[0_10px_30px_-18px_rgba(168,85,247,0.75)]"
                   }
+                  style={{
+                    borderColor: message.role === "assistant" ? "var(--accent-border)" : "var(--border)",
+                    backgroundColor: message.role === "assistant" ? "var(--muted-bg)" : "var(--card)",
+                  }}
                 >
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-200/95">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text)" }}>
                       {message.role === "assistant" ? "Copilot" : "You"}
                     </span>
-                    <span className="text-[11px] tracking-[0.04em] text-slate-400">
+                    <span className="text-[11px] tracking-[0.04em]" style={{ color: "var(--muted-text)" }}>
                       {CONTEXT_LABELS[inferContext(message.content)]}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-[13px] leading-6 text-slate-100/95">
+                  <p className="whitespace-pre-wrap text-[13px] leading-6" style={{ color: "var(--text)" }}>
                     {message.content}
                   </p>
                 </article>
@@ -554,7 +819,7 @@ export default function CopilotPage() {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="border-t border-white/10 px-5 py-4">
+          <form onSubmit={handleSubmit} className="border-t px-5 py-4" style={{ borderColor: "var(--border)" }}>
             <label htmlFor="copilot-input" className="sr-only">
               Ask Copilot
             </label>
@@ -562,12 +827,12 @@ export default function CopilotPage() {
               <div
                 className={`overflow-hidden transition-all duration-300 ${isAiThinking ? "max-h-10 opacity-100" : "max-h-0 opacity-0"}`}
               >
-                <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-400/10 px-3 py-1.5 text-xs text-cyan-100">
+                <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs" style={{ borderColor: "var(--accent-border)", backgroundColor: "var(--accent-bg)", color: "var(--accent-text)" }}>
                   <span>AI is thinking...</span>
                   <span className="inline-flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-200 [animation-delay:-0.2s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-200 [animation-delay:-0.1s]" />
-                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-200" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full" style={{ backgroundColor: "var(--accent)", animationDelay: "-0.2s" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full" style={{ backgroundColor: "var(--accent)", animationDelay: "-0.1s" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full" style={{ backgroundColor: "var(--accent)" }} />
                   </span>
                 </div>
               </div>
@@ -580,16 +845,26 @@ export default function CopilotPage() {
                 placeholder="Ask about molecules, similarity, experiments, or risks..."
                 rows={3}
                 disabled={isAiThinking}
-                className="w-full resize-none rounded-xl border border-white/15 bg-slate-900/90 px-3 py-2.5 text-[13px] leading-6 text-slate-100 placeholder:text-slate-500 transition-all duration-200 focus:border-cyan-300/50 focus:outline-none focus:ring-1 focus:ring-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full resize-none rounded-xl border px-3 py-2.5 text-[13px] leading-6 transition-all duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  borderColor: "var(--border)",
+                  backgroundColor: "var(--card)",
+                  color: "var(--text)",
+                }}
               />
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs text-slate-500">
+                <p className="text-xs" style={{ color: "var(--muted-text)" }}>
                   {isAiThinking ? "Copilot is processing your request..." : "Press Enter to send, Shift+Enter for newline"}
                 </p>
                 <button
                   type="submit"
                   disabled={isAiThinking}
-                  className="h-10 rounded-xl border border-cyan-300/35 bg-cyan-400/15 px-4 text-sm font-medium text-cyan-100 transition hover:bg-cyan-300/25 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-10 rounded-xl border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    borderColor: "var(--accent-border)",
+                    backgroundColor: "var(--accent-bg)",
+                    color: "var(--accent-text)",
+                  }}
                 >
                   Send
                 </button>
@@ -598,32 +873,51 @@ export default function CopilotPage() {
           </form>
         </section>
 
-        <section className="relative min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+        <section className="relative min-h-0 overflow-hidden rounded-[28px] border shadow-[0_24px_80px_-36px_rgba(15,23,42,0.25)] backdrop-blur-xl" style={{ borderColor: "var(--border)", background: "linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, var(--card)), color-mix(in srgb, var(--card) 90%, var(--bg)))" }}>
           <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-24 top-10 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl" />
-            <div className="absolute right-10 top-6 h-44 w-44 rounded-full bg-teal-400/10 blur-3xl" />
-            <div className="absolute bottom-0 left-1/3 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl" />
+            <div className="absolute -left-24 top-10 h-56 w-56 rounded-full blur-3xl" style={{ backgroundColor: "var(--accent-glow)" }} />
+            <div className="absolute right-10 top-6 h-44 w-44 rounded-full blur-3xl" style={{ backgroundColor: "var(--accent-glow)" }} />
+            <div className="absolute bottom-0 left-1/3 h-48 w-48 rounded-full blur-3xl" style={{ backgroundColor: "var(--accent-glow)" }} />
           </div>
 
           <div className="relative flex h-full min-h-0 flex-col p-5">
+            <div className="mb-4 rounded-2xl border px-4 py-3 shadow-[0_12px_40px_-24px_rgba(15,23,42,0.35)]" style={{ borderColor: "var(--border)", backgroundColor: "color-mix(in srgb, var(--card) 88%, transparent)" }}>
+              <p className="text-[11px] uppercase tracking-[0.18em]" style={{ color: "var(--accent)" }}>Experiment Status</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                {[
+                  { label: "State", value: pipelineState.replace(/_/g, " ") },
+                  { label: "Active View", value: activeView.replace(/-/g, " ") },
+                  { label: "Messages", value: String(messages.length) },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border px-3 py-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
+                    <p className="text-[10px] uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>{item.label}</p>
+                    <p className="mt-1 text-sm font-semibold" style={{ color: "var(--text)" }}>{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mb-4 flex flex-wrap items-center gap-2">
               {contextBadges.map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => handleContextBadgeClick(key)}
-                  className={
-                    key === activeContext
-                      ? "rounded-full border border-cyan-300/40 bg-cyan-400/15 px-3 py-1 text-xs text-cyan-100"
-                      : "rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300"
-                  }
+                  className="rounded-full border px-3 py-1 text-xs"
+                  style={{
+                    borderColor: key === activeContext ? "var(--accent-border)" : "var(--border)",
+                    backgroundColor: key === activeContext ? "var(--accent-bg)" : "var(--card)",
+                    color: key === activeContext ? "var(--accent-text)" : "var(--muted-text)",
+                  }}
                 >
                   {label}
                 </button>
               ))}
             </div>
 
-            <DynamicCanvasPanel view={activeView} contextLabel={CONTEXT_LABELS[activeContext]} />
+            <div className="mt-2">
+              <DynamicCanvasPanel view={activeView} contextLabel={CONTEXT_LABELS[activeContext]} />
+            </div>
           </div>
         </section>
       </div>
