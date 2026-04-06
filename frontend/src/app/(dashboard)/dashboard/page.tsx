@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import {
+  getDataset,
   getDatasets,
   getExperimentSummary,
   getRecentRuns,
-  getStats,
 } from "@/services/api";
 import { useUiStore } from "@/store";
-import type { RecentRun, StatsResponse } from "@/types/api";
+import type { RecentRun } from "@/types/api";
 import DatasetSelector from "@/components/dashboard/DatasetSelector";
 import SummaryCards from "@/components/dashboard/SummaryCards";
 import ActivityPanel from "@/components/dashboard/ActivityPanel";
@@ -20,9 +20,11 @@ import { toFriendlyErrorMessage } from "@/services/api";
 
 export default function DashboardPage() {
   const selectedDataset = useUiStore((s) => s.selectedDataset);
+  const setSelectedDataset = useUiStore((s) => s.setSelectedDataset);
   const [reloadTick, setReloadTick] = useState(0);
-  const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [datasetNames, setDatasetNames] = useState<string[]>([]);
   const [totalDatasets, setTotalDatasets] = useState(0);
+  const [totalMolecules, setTotalMolecules] = useState<number | null>(null);
   const [experimentCount, setExperimentCount] = useState<number | null>(null);
   const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
 
@@ -33,7 +35,7 @@ export default function DashboardPage() {
   const [recentRunsLoading, setRecentRunsLoading] = useState(true);
   const [recentRunsError, setRecentRunsError] = useState<string | null>(null);
 
-  const activeDatasetLabel = selectedDataset ?? stats?.dataset ?? "All Datasets";
+  const activeDatasetLabel = selectedDataset ?? datasetNames[0] ?? "All Datasets";
   const hasApiError = Boolean(error || experimentsError || recentRunsError);
   const dashboardError = error || experimentsError || recentRunsError;
 
@@ -50,29 +52,44 @@ export default function DashboardPage() {
     setRecentRunsLoading(true);
     setRecentRunsError(null);
 
-    getStats(selectedDataset ?? undefined)
-      .then((data) => {
+    getDatasets()
+      .then(async (data) => {
+        if (!active) {
+          return;
+        }
+
+        setDatasetNames(data.datasets);
+        setTotalDatasets(data.count);
+
+        const resolvedDataset =
+          selectedDataset && data.datasets.includes(selectedDataset)
+            ? selectedDataset
+            : data.datasets[0] ?? null;
+        if (resolvedDataset && resolvedDataset !== selectedDataset) {
+          setSelectedDataset(resolvedDataset);
+        }
+
+        if (!resolvedDataset) {
+          setTotalMolecules(null);
+          return;
+        }
+
+        const datasetDetails = await getDataset(resolvedDataset);
         if (active) {
-          setStats(data);
-          setLoading(false);
+          setTotalMolecules(datasetDetails.count);
         }
       })
       .catch((err) => {
         if (active) {
-          setError(toFriendlyErrorMessage(err, "Dashboard data is temporarily unavailable."));
-          setLoading(false);
-        }
-      });
-
-    getDatasets()
-      .then((datasets) => {
-        if (active) {
-          setTotalDatasets(datasets.length);
+          setDatasetNames([]);
+          setTotalDatasets(0);
+          setTotalMolecules(null);
+          setError(toFriendlyErrorMessage(err, "Dataset data is temporarily unavailable."));
         }
       })
-      .catch(() => {
+      .finally(() => {
         if (active) {
-          setTotalDatasets(0);
+          setLoading(false);
         }
       });
 
@@ -109,7 +126,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [selectedDataset, reloadTick]);
+  }, [selectedDataset, reloadTick, setSelectedDataset]);
 
   return (
     <div className="page-shell ui-fade-in">
@@ -141,12 +158,12 @@ export default function DashboardPage() {
         />
       )}
 
-      {stats && !loading && (
+      {!loading && (
         <div className="space-y-8 fade-in-soft ui-state-transition">
           <DatasetInsightsPanel
             totalDatasets={totalDatasets}
             activeDataset={activeDatasetLabel}
-            summary={stats.summary}
+            totalMolecules={totalMolecules}
           />
 
           <section className="space-y-5">
@@ -162,7 +179,8 @@ export default function DashboardPage() {
               </p>
             </div>
             <SummaryCards
-              summary={stats.summary}
+              totalMolecules={totalMolecules}
+              totalDatasets={totalDatasets}
               experimentCount={experimentCount}
               experimentsLoading={experimentsLoading}
               experimentsError={experimentsError}

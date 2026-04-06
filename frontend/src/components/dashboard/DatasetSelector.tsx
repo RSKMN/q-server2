@@ -1,23 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUiStore } from "@/store";
 import { getDatasets } from "@/services/api";
-
-const fallbackDatasets = ["ZINC250k", "ChEMBL", "PDBbind", "DrugBank"];
 
 export default function DatasetSelector() {
   const selectedDataset = useUiStore((s) => s.selectedDataset);
   const setSelectedDataset = useUiStore((s) => s.setSelectedDataset);
 
-  const [datasets, setDatasets] = useState<string[]>(fallbackDatasets);
+  const [datasets, setDatasets] = useState<string[]>([]);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
+    if (hasLoadedRef.current) {
+      return;
+    }
+    hasLoadedRef.current = true;
+
     let active = true;
     getDatasets()
       .then((data) => {
-        if (active && data && data.length > 0) {
-          setDatasets(data);
+        if (!active) {
+          return;
+        }
+
+        setDatasets(data.datasets);
+
+        const fallbackDataset = data.datasets[0] ?? null;
+        if (!selectedDataset && fallbackDataset) {
+          setSelectedDataset(fallbackDataset);
+        } else if (selectedDataset && !data.datasets.includes(selectedDataset) && fallbackDataset) {
+          setSelectedDataset(fallbackDataset);
         }
       })
       .catch((err) => {
@@ -26,7 +39,7 @@ export default function DatasetSelector() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedDataset, setSelectedDataset]);
 
   return (
     <div className="relative flex items-center">
@@ -39,13 +52,10 @@ export default function DatasetSelector() {
       </div>
       <select
         id="dataset-select"
-        value={selectedDataset ?? ""}
-        onChange={(e) =>
-          setSelectedDataset(e.target.value ? e.target.value : null)
-        }
+        value={selectedDataset ?? datasets[0] ?? ""}
+        onChange={(e) => setSelectedDataset(e.target.value)}
         className="h-10 cursor-pointer appearance-none rounded-lg border border-slate-200 bg-white px-10 text-sm font-medium text-slate-900 shadow-sm transition-colors hover:border-slate-300 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-[#1e293b] dark:bg-[#0b0f19] dark:text-slate-200 dark:hover:border-[#334155]"
       >
-        <option value="">All datasets</option>
         {datasets.map((ds) => (
           <option key={ds} value={ds}>
             {ds}

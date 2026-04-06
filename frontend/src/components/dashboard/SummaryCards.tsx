@@ -1,6 +1,5 @@
 "use client";
 
-import { StatsSummary } from "@/types/api";
 import StatCard from "./StatCard";
 
 const MoleculeIcon = () => (
@@ -24,19 +23,21 @@ const SuccessIcon = () => (
 );
 
 interface SummaryCardsProps {
-  summary: StatsSummary;
+  totalMolecules: number | null;
+  totalDatasets: number;
   experimentCount: number | null;
   experimentsLoading: boolean;
   experimentsError: string | null;
 }
 
 export default function SummaryCards({
-  summary,
+  totalMolecules,
+  totalDatasets,
   experimentCount,
   experimentsLoading,
   experimentsError,
 }: SummaryCardsProps) {
-  const successRate = Math.max(0, Math.min(100, Number(summary.avg_qed) * 100));
+  const moleculeValue = (totalMolecules ?? 0).toLocaleString();
   const experimentValue = experimentsLoading
     ? "..."
     : (experimentCount ?? 0).toLocaleString();
@@ -48,8 +49,8 @@ export default function SummaryCards({
     <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
       <StatCard
         title="Total Molecules"
-        value={summary.molecule_count.toLocaleString()}
-        description="Records currently available in this dataset"
+        value={moleculeValue}
+        description="Records returned by GET /datasets/{name}"
         icon={<MoleculeIcon />}
         titleTooltip="Total molecules in the active dataset."
         iconTooltip="Molecule dataset coverage"
@@ -63,12 +64,12 @@ export default function SummaryCards({
         iconTooltip="Experiment activity"
       />
       <StatCard
-        title="Success Rate"
-        value={`${successRate.toFixed(1)}%`}
-        description="Proxy based on current average QED signal"
+        title="Datasets"
+        value={totalDatasets.toLocaleString()}
+        description="Available CSV files in data/datasets"
         icon={<SuccessIcon />}
-        titleTooltip="QED-based proxy indicator."
-        iconTooltip="QED indicates drug-likeness quality"
+        titleTooltip="Total dataset files available."
+        iconTooltip="Dataset availability"
       />
     </div>
   );

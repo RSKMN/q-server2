@@ -9,6 +9,7 @@ import type {
   DockingResult,
   ExperimentSummaryResponse,
   Dataset,
+  DatasetDetailsResponse,
   DatasetsResponse,
   Distribution,
   EmbeddingMapResponse,
@@ -67,8 +68,6 @@ const API_TIMEOUT_MS =
   (typeof process !== "undefined" &&
     Number(process.env?.NEXT_PUBLIC_API_TIMEOUT_MS || process.env?.NEXT_PUBLIC_API_TIMEOUT)) ||
   10000;
-
-const DEFAULT_DATASETS: Dataset[] = ["ZINC250k", "ChEMBL", "PDBbind", "DrugBank"];
 
 const EMPTY_DISTRIBUTION: Distribution = {
   bins: [],
@@ -331,15 +330,25 @@ async function apiFetch<T>(
 
 // ─── API functions ───────────────────────────────────────────────────────────
 
-/** Fetch available datasets (e.g. ZINC250k, ChEMBL, PDBbind, DrugBank) */
-export async function getDatasets(): Promise<Dataset[]> {
+/** Fetch available datasets and their total count. */
+export async function getDatasets(): Promise<DatasetsResponse> {
   try {
     const data = await apiFetch<DatasetsResponse>("/datasets");
-    return Array.isArray(data) && data.length ? [...data] : [...DEFAULT_DATASETS];
+    return {
+      count: Number(data?.count ?? 0),
+      datasets: Array.isArray(data?.datasets) ? [...data.datasets] : [],
+    };
   } catch {
-    // Keep UI operational when backend omits datasets endpoint.
-    return [...DEFAULT_DATASETS];
+    return {
+      count: 0,
+      datasets: [],
+    };
   }
+}
+
+/** Fetch a single dataset and a preview of the first 10 rows. */
+export async function getDataset(name: string): Promise<DatasetDetailsResponse> {
+  return apiFetch<DatasetDetailsResponse>(`/datasets/${encodeURIComponent(name)}`);
 }
 
 /** Fetch dataset statistics, optionally filtered by dataset */

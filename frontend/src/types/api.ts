@@ -9,7 +9,18 @@
 export type Dataset = string;
 
 /** Response: GET /datasets */
-export type DatasetsResponse = readonly Dataset[];
+export interface DatasetsResponse {
+  count: number;
+  datasets: Dataset[];
+}
+
+/** Response: GET /datasets/{name} */
+export interface DatasetDetailsResponse {
+  name: string;
+  file: string;
+  count: number;
+  preview: Array<Record<string, unknown>>;
+}
 
 // ─── 2. Dataset Statistics ───────────────────────────────────────────────────
 

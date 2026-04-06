@@ -1,11 +1,9 @@
 "use client";
 
-import type { StatsSummary } from "@/types/api";
-
 interface DatasetInsightsPanelProps {
   totalDatasets: number;
   activeDataset: string;
-  summary: StatsSummary;
+  totalMolecules: number | null;
 }
 
 interface InsightCardProps {
@@ -29,10 +27,8 @@ function InsightCard({ label, value, note }: InsightCardProps) {
 export default function DatasetInsightsPanel({
   totalDatasets,
   activeDataset,
-  summary,
+  totalMolecules,
 }: DatasetInsightsPanelProps) {
-  const summaryValue = `${Number(summary.avg_mw).toFixed(1)} MW | ${Number(summary.avg_logp).toFixed(2)} LogP | ${Number(summary.avg_qed).toFixed(2)} QED`;
-
   return (
     <section className="ui-fade-in ui-hover-lift ui-state-transition rounded-xl border border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl dark:border-[#1e293b] dark:bg-[#0b0f19]">
       <div className="mb-4">
@@ -56,9 +52,9 @@ export default function DatasetInsightsPanel({
           note="Currently loaded in dashboard"
         />
         <InsightCard
-          label="Summary Stats"
-          value={summaryValue}
-          note={`${summary.molecule_count.toLocaleString()} molecules indexed`}
+          label="Total Molecules"
+          value={(totalMolecules ?? 0).toLocaleString()}
+          note="Count returned by GET /datasets/{name}"
         />
       </div>
     </section>
