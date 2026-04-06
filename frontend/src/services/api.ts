@@ -141,7 +141,10 @@ export interface WorkspacePipelineRequest {
 }
 
 export interface WorkspacePipelineResponse {
-  experimentId: string;
+  experimentId?: string;
+  runId?: string;
+  stage?: string;
+  message?: string;
 }
 
 export interface WorkspacePipelineStatusResponse {
@@ -610,7 +613,7 @@ export async function getRecentRuns(limit: number = 8): Promise<RecentRunsRespon
 
 /** Trigger molecule generation stage (placeholder-ready API contract). */
 export async function generateMolecules(
-  payload: WorkspacePipelineRequest = {}
+  payload: Partial<WorkspacePipelineRequest> = {}
 ): Promise<WorkspacePipelineResponse> {
   try {
     return await apiFetch<WorkspacePipelineResponse>("/workspace/generate", {
@@ -629,7 +632,7 @@ export async function generateMolecules(
 
 /** Trigger docking stage (placeholder-ready API contract). */
 export async function runDocking(
-  payload: WorkspacePipelineRequest = {}
+  payload: Partial<WorkspacePipelineRequest> = {}
 ): Promise<WorkspacePipelineResponse> {
   try {
     return await apiFetch<WorkspacePipelineResponse>("/workspace/docking", {
@@ -649,7 +652,7 @@ export async function runDocking(
 /** Trigger full pipeline against the backend pipeline endpoint. */
 export async function runPipeline(
   payload: WorkspacePipelineRequest
-): Promise<WorkspacePipelineResponse> {
+): Promise<{ experimentId: string }> {
   const data = await apiFetch<{ experiment_id: string }>("/pipeline/run", {
     method: "POST",
     body: payload,

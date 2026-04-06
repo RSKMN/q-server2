@@ -120,7 +120,7 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
           <div>
             <p className="viz-title text-sm" style={{ color: "var(--text)" }}>RMSD vs Time</p>
             <p className="viz-subtitle mt-1 text-xs">
-              {moleculeId} | Frame {activeIndex + 1}/{points.length} | Time {activePoint.time} ns
+              {moleculeId} | Frame {activeIndex + 1}/{sortedFrames.length} | Time {activePoint.time} ns
             </p>
           </div>
           <button

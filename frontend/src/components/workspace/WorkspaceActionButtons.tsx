@@ -169,7 +169,7 @@ export default function WorkspaceActionButtons() {
 
       if (action === "docking") {
         const response = await runDocking({});
-        appendLog(timestamped(response.message));
+        appendLog(timestamped(response.message ?? "Docking started..."));
       }
 
       const finalized = useWorkspaceStore

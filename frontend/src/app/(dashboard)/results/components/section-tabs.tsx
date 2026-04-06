@@ -25,7 +25,7 @@ export function SectionTabs({ activeSection, onChange }: SectionTabsProps) {
               style={{
                 backgroundColor: isActive ? "var(--accent-bg)" : "transparent",
                 color: isActive ? "var(--accent-text)" : "var(--muted-text)",
-                ringColor: "var(--accent-border)",
+                ["--tw-ring-color" as string]: "var(--accent-border)",
               }}
             >
               <span

@@ -57,6 +57,7 @@ export default function ResultsTableCanvas() {
             </article>
           ))}
         </div>
+      </section>
     </div>
   );
 }

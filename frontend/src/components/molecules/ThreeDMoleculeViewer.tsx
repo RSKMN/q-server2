@@ -91,7 +91,7 @@ export default function ThreeDMoleculeViewer({
 
   useEffect(() => {
     setActiveSourceSlot("primary");
-  }, [primarySource.format, primarySource.label, primarySource.value]);
+  }, [primarySource?.format, primarySource?.label, primarySource?.value]);
 
   useEffect(() => {
     let alive = true;
@@ -190,7 +190,7 @@ export default function ThreeDMoleculeViewer({
       }
       setIsReady(false);
     };
-  }, [activeSource.format, activeSource.value, representation, showSurfaceControl, surfaceEnabled]);
+  }, [activeSource?.format, activeSource?.value, representation, showSurfaceControl, surfaceEnabled]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -301,7 +301,7 @@ export default function ThreeDMoleculeViewer({
                   color: activeSourceSlot === "primary" ? "var(--bg)" : "var(--muted-text)",
                 }}
               >
-                {primarySource.label ?? primarySource.format.toUpperCase()}
+                {primarySource?.label ?? primarySource?.format?.toUpperCase() ?? "PRIMARY"}
               </button>
               <button
                 type="button"
@@ -317,7 +317,7 @@ export default function ThreeDMoleculeViewer({
                   color: activeSourceSlot === "alternate" ? "var(--bg)" : "var(--muted-text)",
                 }}
               >
-                {secondarySource.label ?? secondarySource.format.toUpperCase()}
+                {secondarySource?.label ?? secondarySource?.format?.toUpperCase() ?? "ALTERNATE"}
               </button>
             </div>
           ) : null}
