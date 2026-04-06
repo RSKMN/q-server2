@@ -3,9 +3,14 @@ from __future__ import annotations
 import os
 from threading import Lock
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+
+
+# Load local .env for development; real environment variables (e.g., Railway) take precedence.
+load_dotenv(override=False)
 
 
 _ENGINE: Engine | None = None

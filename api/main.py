@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,8 +12,9 @@ from fastapi.responses import Response
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Initialize DB schema on startup.
-    engine = get_engine()
-    db_models.Base.metadata.create_all(bind=engine)
+    if os.getenv("P3_SKIP_DB_INIT", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+        engine = get_engine()
+        db_models.Base.metadata.create_all(bind=engine)
     yield
 
 
@@ -46,8 +48,8 @@ async def options_handler(full_path: str):
 app.include_router(health.router, tags=["health"])
 app.include_router(molecules.router, tags=["molecules"])
 app.include_router(embeddings.router, tags=["embeddings"])
-app.include_router(experiments.router, tags=["experiments"])
-app.include_router(results.router, tags=["results"])
+app.include_router(experiments.router, prefix="/pipeline", tags=["experiments"])
+app.include_router(results.router, prefix="/results", tags=["results"])
 
 @app.get("/")
 def root():

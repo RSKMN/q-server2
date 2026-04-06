@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import csv
+import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Query
+import httpx
+from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi.responses import JSONResponse
 
 
 router = APIRouter()
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:9000")
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -59,7 +63,7 @@ def _relative_path(path: Path) -> str:
         return path.as_posix()
 
 
-@router.get("/results/overview")
+@router.get("/overview")
 def get_results_overview() -> dict[str, Any]:
     existing_ranked_path = PROJECT_ROOT / "existing_candidates_ranked.csv"
     generated_path = PROJECT_ROOT / "generated_candidates.csv"
@@ -107,7 +111,7 @@ def get_results_overview() -> dict[str, Any]:
     }
 
 
-@router.get("/results/candidates")
+@router.get("/candidates")
 def get_ranked_candidates(
     source: str = Query(default="existing", pattern="^(existing|generated)$"),
     limit: int = Query(default=25, ge=1, le=500),
@@ -129,7 +133,7 @@ def get_ranked_candidates(
     }
 
 
-@router.get("/results/profiles")
+@router.get("/profiles")
 def get_candidate_profiles(limit: int = Query(default=100, ge=1, le=1000)) -> dict[str, Any]:
     qm_rows = _read_csv_rows(PROJECT_ROOT / "qm" / "qm_results.csv")
     stability_rows = _read_csv_rows(PROJECT_ROOT / "md" / "stability.csv")
@@ -160,7 +164,7 @@ def get_candidate_profiles(limit: int = Query(default=100, ge=1, le=1000)) -> di
     }
 
 
-@router.get("/results/artifacts")
+@router.get("/artifacts")
 def get_result_artifacts(limit: int = Query(default=200, ge=1, le=1000)) -> dict[str, Any]:
     candidates: list[Path] = []
     candidates.extend(sorted((PROJECT_ROOT / "md" / "summaries").glob("*.txt")))
@@ -180,3 +184,37 @@ def get_result_artifacts(limit: int = Query(default=200, ge=1, le=1000)) -> dict
             for path in files
         ],
     }
+
+
+@router.get("/{experiment_id}")
+async def get_result(experiment_id: str) -> Response:
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"{AI_SERVICE_URL.rstrip('/')}/results/{experiment_id}")
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to connect to AI service",
+        ) from exc
+
+    if response.is_error:
+        content_type = response.headers.get("content-type", "application/json")
+        if "application/json" in content_type:
+            try:
+                return JSONResponse(status_code=response.status_code, content=response.json())
+            except ValueError:
+                pass
+        return Response(
+            status_code=response.status_code,
+            content=response.text,
+            media_type=content_type,
+        )
+
+    content_type = response.headers.get("content-type", "application/json")
+    if "application/json" in content_type:
+        try:
+            return JSONResponse(content=response.json())
+        except ValueError:
+            pass
+
+    return Response(content=response.text, media_type=content_type)
