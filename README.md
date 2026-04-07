@@ -40,6 +40,7 @@ Core routes currently mounted:
 
 Pipeline and experiment routes (`/pipeline` prefix):
 - `POST /pipeline/run`
+- `POST /pipeline/callback`
 - `GET /pipeline/status/{experiment_id}`
 - `GET /pipeline/results/{experiment_id}`
 - `POST /pipeline/experiments`
@@ -129,6 +130,11 @@ P3_DB_OPERATION_TIMEOUT_SECONDS=15
 
 # Upstream AI service used by /pipeline run/status/results proxy routes
 AI_SERVICE_URL=http://localhost:9000
+
+# Callback URL injected into /pipeline/run payload constraints when missing
+# Precedence: constraints.callback_url > PIPELINE_CALLBACK_URL > BACKEND_CALLBACK_URL
+PIPELINE_CALLBACK_URL=http://localhost:8000/pipeline/callback
+BACKEND_CALLBACK_URL=http://localhost:8000/pipeline/callback
 ```
 
 See `.env.example` for a template.

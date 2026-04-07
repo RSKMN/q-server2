@@ -34,6 +34,7 @@ docker compose up api
 | `POST` | `/molecules/similar` | Find similar molecules via embeddings |
 | `POST` | `/embeddings` | Insert molecule embeddings into Milvus |
 | `POST` | `/pipeline/run` | Start a pipeline run |
+| `POST` | `/pipeline/callback` | Receive async pipeline updates/results |
 | `GET` | `/pipeline/status/{experiment_id}` | Poll pipeline status |
 | `GET` | `/pipeline/results/{experiment_id}` | Fetch pipeline results |
 | `POST` | `/experiments` | Create experiment |

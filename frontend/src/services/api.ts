@@ -136,6 +136,7 @@ export interface WorkspacePipelineRequest {
     logp?: number;
     qed?: number;
     toxicity?: WorkspaceToxicityLevel;
+    callback_url?: string;
   };
 }
 
@@ -662,9 +663,25 @@ export async function runDocking(
 export async function runPipeline(
   payload: WorkspacePipelineRequest
 ): Promise<{ experimentId: string }> {
+  const configuredCallback =
+    typeof process !== "undefined" ? process.env?.NEXT_PUBLIC_PIPELINE_CALLBACK_URL : undefined;
+  const callbackUrl =
+    payload.constraints?.callback_url ||
+    (typeof configuredCallback === "string" && configuredCallback.trim()
+      ? configuredCallback.trim()
+      : undefined);
+
+  const requestPayload: WorkspacePipelineRequest = {
+    ...payload,
+    constraints: {
+      ...(payload.constraints ?? {}),
+      ...(callbackUrl ? { callback_url: callbackUrl } : {}),
+    },
+  };
+
   const data = await apiFetch<{ experiment_id: string }>("/pipeline/run", {
     method: "POST",
-    body: payload,
+    body: requestPayload,
   });
 
   if (!data.experiment_id) {

@@ -78,6 +78,15 @@ class PipelineRunRequest(BaseModel):
 	constraints: dict[str, Any] = Field(default_factory=dict)
 
 
+class PipelineCallbackRequest(BaseModel):
+	experiment_id: str = Field(..., min_length=1)
+	status: str = Field(..., min_length=1)
+	stage: str = Field(..., min_length=1)
+	results: dict[str, Any] = Field(default_factory=dict)
+	logs: list[str] = Field(default_factory=list)
+	progress: int | None = None
+
+
 class PipelineRunResponse(BaseModel):
 	experiment_id: str
 	status: str
@@ -96,6 +105,18 @@ class PipelineStatusResponse(BaseModel):
 	results: dict[str, Any] = Field(default_factory=dict)
 	experiment_id: str
 	is_mock: bool = False
+
+
+def _resolve_callback_url(constraints: dict[str, Any]) -> str | None:
+	constraint_callback = constraints.get("callback_url") if isinstance(constraints, dict) else None
+	if isinstance(constraint_callback, str) and constraint_callback.strip():
+		return constraint_callback.strip()
+
+	env_value = os.getenv("PIPELINE_CALLBACK_URL") or os.getenv("BACKEND_CALLBACK_URL")
+	if isinstance(env_value, str) and env_value.strip():
+		return env_value.strip()
+
+	return None
 
 
 def _compute_progress(stage: str) -> int:
@@ -217,6 +238,10 @@ def finish_run(id: UUID, request: FinishRunRequest) -> StatusResponse:
 async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
 	logger.info("POST /pipeline/run protein=%s", request.protein)
 	payload = request.model_dump()
+	callback_url = _resolve_callback_url(request.constraints)
+	if callback_url:
+		payload.setdefault("constraints", {})
+		payload["constraints"]["callback_url"] = callback_url
 	fallback_experiment_id = f"mock-{uuid4().hex[:10]}"
 
 	try:
@@ -269,6 +294,26 @@ async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
 	)
 
 	return PipelineRunResponse(**normalized.model_dump())
+
+
+@router.post("/callback", response_model=PipelineStatusResponse)
+async def pipeline_callback(request: PipelineCallbackRequest) -> PipelineStatusResponse:
+	logger.info(
+		"POST /pipeline/callback experiment_id=%s status=%s stage=%s",
+		request.experiment_id,
+		request.status,
+		request.stage,
+	)
+
+	return _build_pipeline_response(
+		experiment_id=request.experiment_id,
+		status_value=request.status,
+		stage=request.stage,
+		logs=request.logs or ["Pipeline callback received."],
+		results=request.results,
+		is_mock=False,
+		progress=request.progress,
+	)
 
 
 @router.get("/status/{experiment_id}", response_model=PipelineStatusResponse)

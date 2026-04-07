@@ -425,10 +425,15 @@ Start a full pipeline run for the selected protein target and constraints.
   "constraints": {
     "logp": number,
     "qed": number,
-    "toxicity": "Low" | "Medium" | "High"
+    "toxicity": "Low" | "Medium" | "High",
+    "callback_url": string
   }
 }
 ```
+
+`callback_url` may also be injected server-side if not present in the request body, using env fallback:
+- `PIPELINE_CALLBACK_URL`
+- `BACKEND_CALLBACK_URL`
 
 **Response (200 OK):**
 ```json
@@ -477,6 +482,24 @@ Poll the current pipeline run state.
 - `phase1` - Filtering candidates
 - `phase2` - Docking molecules
 - `completed` - Completed
+
+#### `POST /pipeline/callback`
+Receive async pipeline updates/results from the AI pipeline runner.
+
+**Request Schema:**
+```typescript
+{
+  "experiment_id": string,
+  "status": string,
+  "stage": string,
+  "results": Record<string, any>,
+  "logs"?: string[],
+  "progress"?: number
+}
+```
+
+**Response (200 OK):**
+Returns a normalized status payload acknowledging callback receipt.
 
 #### `GET /pipeline/results/{experiment_id}`
 Fetch completed results for a finished pipeline run.

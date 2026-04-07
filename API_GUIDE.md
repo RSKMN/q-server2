@@ -68,6 +68,7 @@ curl http://localhost:8000/health
 | POST | `/molecules/similar` | Find similar molecules | [Link](#molecule-similarity-search) |
 | POST | `/embeddings` | Insert embeddings | [Link](#embedding-insertion) |
 | POST | `/pipeline/run` | Start pipeline run | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
+| POST | `/pipeline/callback` | Receive async pipeline updates/results | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
 | GET | `/pipeline/status/{experiment_id}` | Poll pipeline status | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
 | GET | `/pipeline/results/{experiment_id}` | Fetch pipeline results | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
 | POST | `/experiments` | Create experiment | [Link](#experiment-management) |
