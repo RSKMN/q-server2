@@ -11,7 +11,12 @@ from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from services.experiments.experiment_service import ExperimentService
-from services.experminets_store import add_experiment, get_all_experiments
+from services.experminets_store import (
+	add_experiment,
+	get_all_experiments,
+	get_pipeline_callback,
+	upsert_pipeline_callback,
+)
 
 
 router = APIRouter()
@@ -305,7 +310,7 @@ async def pipeline_callback(request: PipelineCallbackRequest) -> PipelineStatusR
 		request.stage,
 	)
 
-	return _build_pipeline_response(
+	normalized = _build_pipeline_response(
 		experiment_id=request.experiment_id,
 		status_value=request.status,
 		stage=request.stage,
@@ -314,11 +319,16 @@ async def pipeline_callback(request: PipelineCallbackRequest) -> PipelineStatusR
 		is_mock=False,
 		progress=request.progress,
 	)
+	upsert_pipeline_callback(request.experiment_id, normalized.model_dump())
+	return normalized
 
 
 @router.get("/status/{experiment_id}", response_model=PipelineStatusResponse)
 async def get_pipeline_status(experiment_id: str) -> PipelineStatusResponse:
 	logger.info("GET /pipeline/status/%s", experiment_id)
+	callback_payload = get_pipeline_callback(experiment_id)
+	if callback_payload is not None:
+		return PipelineStatusResponse(**callback_payload)
 	try:
 		async with httpx.AsyncClient(timeout=30.0) as client:
 			response = await client.get(f"{AI_SERVICE_URL.rstrip('/')}/status/{experiment_id}")
@@ -351,6 +361,9 @@ async def get_pipeline_status(experiment_id: str) -> PipelineStatusResponse:
 @router.get("/results/{experiment_id}", response_model=PipelineStatusResponse)
 async def get_pipeline_results(experiment_id: str) -> PipelineStatusResponse:
 	logger.info("GET /pipeline/results/%s", experiment_id)
+	callback_payload = get_pipeline_callback(experiment_id)
+	if callback_payload is not None:
+		return PipelineStatusResponse(**callback_payload)
 	try:
 		async with httpx.AsyncClient(timeout=30.0) as client:
 			response = await client.get(f"{AI_SERVICE_URL.rstrip('/')}/results/{experiment_id}")
