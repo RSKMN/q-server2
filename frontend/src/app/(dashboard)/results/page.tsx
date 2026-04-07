@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getDockingResults,
   getGeneratedMolecules,
+  getPipelineExperiments,
+  getPipelineResult,
   getRankedCandidates,
   getResultArtifacts,
   getResultsOverview,
@@ -51,6 +53,44 @@ function filterArtifacts(items: ResultArtifact[], keywords: string[]): ResultArt
     const searchable = `${artifact.name} ${artifact.path}`.toLowerCase();
     return keywords.some((keyword) => searchable.includes(keyword));
   });
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+  return fallback;
+}
+
+function pickArray(payload: Record<string, unknown> | null, keys: string[]): unknown[] {
+  if (!payload) return [];
+  const nested = asRecord(payload.results);
+
+  for (const key of keys) {
+    const topLevel = payload[key];
+    if (Array.isArray(topLevel)) {
+      return topLevel;
+    }
+    if (nested) {
+      const nestedValue = nested[key];
+      if (Array.isArray(nestedValue)) {
+        return nestedValue;
+      }
+    }
+  }
+
+  return [];
 }
 
 export default function ResultsPage() {
@@ -104,6 +144,80 @@ export default function ResultsPage() {
           simulationData.length === 0 &&
           quantumData.length === 0 &&
           (filteredData.items?.length ?? 0) === 0;
+
+        if (useDemoData) {
+          try {
+            const experiments = await getPipelineExperiments();
+            const latest = [...experiments].sort((a, b) => {
+              const left = new Date(a.created_at).getTime();
+              const right = new Date(b.created_at).getTime();
+              return right - left;
+            })[0];
+
+            if (latest?.experiment_id) {
+              const payload = asRecord(await getPipelineResult(latest.experiment_id));
+              const rows = pickArray(payload, ["generated", "generated_molecules", "molecules", "items", "rows", "data"]);
+              const dockingRows = pickArray(payload, ["docking", "docking_results", "docking_scores"]);
+
+              const mappedGenerated: GeneratedMoleculeResult[] = rows.map((item, index) => {
+                const row = asRecord(item) ?? {};
+                return {
+                  molecule_id: String(row.molecule_id ?? row.candidate_id ?? row.id ?? `candidate-${index + 1}`),
+                  smiles: String(row.smiles ?? row.canonical_smiles ?? row.structure ?? ""),
+                  molecular_weight: toNumber(row.molecular_weight ?? row.mw),
+                  logp: toNumber(row.logp ?? row.log_p),
+                  qed: toNumber(row.qed ?? row.qed_score ?? row.score ?? row.qsvm_score),
+                };
+              });
+
+              const mappedFiltered: RankedCandidatesResponse = {
+                source: "generated",
+                file: "pipeline-results",
+                count: rows.length,
+                items: rows.map((item, index) => {
+                  const row = asRecord(item) ?? {};
+                  return {
+                    molecule_id: String(row.molecule_id ?? row.candidate_id ?? row.id ?? `candidate-${index + 1}`),
+                    score: toNumber(row.score ?? row.qed ?? row.qsvm_score ?? row.stability_score),
+                  };
+                }),
+              };
+
+              const mappedDocking: DockingResult[] = dockingRows.map((item, index) => {
+                const row = asRecord(item) ?? {};
+                return {
+                  molecule_id: String(row.molecule_id ?? row.candidate_id ?? row.id ?? `dock-${index + 1}`),
+                  binding_affinity: toNumber(row.binding_affinity ?? row.affinity ?? row.score),
+                  h_bonds: toNumber(row.h_bonds ?? row.hbonds ?? row.hydrogen_bonds),
+                  target_protein: String(row.target_protein ?? row.target ?? row.protein ?? "Unknown target"),
+                };
+              });
+
+              const hasLiveRows = mappedGenerated.length > 0 || mappedDocking.length > 0;
+              if (hasLiveRows) {
+                setIsUsingDemoData(false);
+                setOverview({
+                  ...DEMO_OVERVIEW,
+                  counts: {
+                    ...DEMO_OVERVIEW.counts,
+                    generated_candidates: mappedGenerated.length,
+                    docking_result_files: mappedDocking.length,
+                    existing_ranked: mappedFiltered.items.length,
+                  },
+                });
+                setGeneratedMolecules(mappedGenerated);
+                setDockingResults(mappedDocking);
+                setSimulationResults(simulationData);
+                setQuantumResults(quantumData);
+                setFilteredRanked(mappedFiltered);
+                setArtifacts(artifactsData);
+                return;
+              }
+            }
+          } catch {
+            // Keep existing fallback behavior.
+          }
+        }
 
         setIsUsingDemoData(useDemoData);
         setOverview(useDemoData ? DEMO_OVERVIEW : overviewData);
