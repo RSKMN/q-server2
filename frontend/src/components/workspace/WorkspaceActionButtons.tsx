@@ -43,6 +43,7 @@ export default function WorkspaceActionButtons() {
   const setCompleted = useWorkspaceStore((s) => s.setCompleted);
   const setError = useWorkspaceStore((s) => s.setError);
   const setLastExperimentId = useWorkspaceStore((s) => s.setLastExperimentId);
+  const setPipelineState = useWorkspaceStore((s) => s.setPipelineState);
   const clearLogs = useWorkspaceStore((s) => s.clearLogs);
   const appendLog = useWorkspaceStore((s) => s.appendLog);
   const setIntermediateResults = useWorkspaceStore((s) => s.setIntermediateResults);
@@ -189,8 +190,14 @@ export default function WorkspaceActionButtons() {
         });
 
         setLastExperimentId(response.experimentId);
+        setPipelineExecution({
+          status: "running",
+          stage: "phase0",
+          progress: 0,
+          logs: [],
+        });
+        setPipelineState("running_full_pipeline");
         appendLog(timestamped(`Pipeline run started: ${response.experimentId}`));
-        setCompleted();
         return;
       }
 
