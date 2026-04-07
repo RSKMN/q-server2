@@ -383,26 +383,37 @@ export default function WorkspaceOutputPanel() {
   const checkpointCards = useMemo(() => intermediateResults, [intermediateResults]);
 
   const generatedCandidates = useMemo<GeneratedMolecule[]>(() => {
-    return (pipelineResults.generated ?? [])
+    const generatedRows = Array.isArray(pipelineResults.generated) ? pipelineResults.generated : [];
+    const fallbackRows = generatedRows.length
+      ? generatedRows
+      : Array.isArray(pipelineResults.filtered) && pipelineResults.filtered.length
+        ? pipelineResults.filtered
+        : Array.isArray(pipelineResults.docking)
+          ? pipelineResults.docking
+          : [];
+
+    return fallbackRows
       .map((item, index) => {
         if (typeof item !== "object" || item === null) {
           return null;
         }
         const row = item as Record<string, unknown>;
         const moleculeId = row.molecule_id ?? row.id ?? `molecule-${index + 1}`;
-        const scoreValue = row.score;
+        const scoreValue =
+          row.score ??
+          row.qed ??
+          row.qsvm_score ??
+          row.stability_score ??
+          row.binding_affinity;
         const score = typeof scoreValue === "number" ? scoreValue : Number(scoreValue ?? NaN);
-        if (!Number.isFinite(score)) {
-          return null;
-        }
         return {
           molecule_id: String(moleculeId),
-          score,
+          score: Number.isFinite(score) ? score : 0,
         };
       })
       .filter((item): item is GeneratedMolecule => item !== null)
       .sort((a, b) => b.score - a.score);
-  }, [pipelineResults.generated]);
+  }, [pipelineResults.docking, pipelineResults.filtered, pipelineResults.generated]);
 
   const bestCandidate = generatedCandidates[0] ?? null;
 
