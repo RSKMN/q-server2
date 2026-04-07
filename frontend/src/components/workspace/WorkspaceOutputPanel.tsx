@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui";
+import { getPipelineResult, getPipelineStatus } from "@/services";
+import { getDemoPipelinePayload } from "@/services/pipelineDemo";
 import { useWorkspaceStore } from "@/store";
 import type { PipelineState } from "@/store";
 
@@ -69,67 +71,10 @@ const STATUS_META: Record<
   },
 };
 
-const LOG_TEMPLATES: Record<
-  Extract<PipelineState, "generating" | "docking" | "running_full_pipeline">,
-  string[]
-> = {
-  generating: [
-    "Encoding target sequence embeddings",
-    "Sampling latent molecular candidates",
-    "Applying LogP and QED constraints",
-    "Filtering unstable scaffolds",
-  ],
-  docking: [
-    "Preparing receptor pocket conformations",
-    "Launching docking workers",
-    "Aggregating binding affinity predictions",
-    "Calibrating score confidence intervals",
-  ],
-  running_full_pipeline: [
-    "Orchestrator started for full pipeline",
-    "Generation stage active with guided constraints",
-    "Docking stage queued with top candidates",
-    "Post-processing and ranking intermediate outputs",
-  ],
-};
-
-const MOCK_GENERATED_MOLECULES = [
-  {
-    id: "CND-1042",
-    smiles: "CCN(CC)CCOC(=O)c1ccc(Cl)cc1",
-    score: 0.931,
-    docking: -10.7,
-    qed: 0.82,
-  },
-  {
-    id: "CND-0988",
-    smiles: "CC(=O)Nc1ccc(O)cc1",
-    score: 0.918,
-    docking: -10.2,
-    qed: 0.79,
-  },
-  {
-    id: "CND-1120",
-    smiles: "COc1ccc2nc(S(N)(=O)=O)sc2c1",
-    score: 0.904,
-    docking: -9.9,
-    qed: 0.81,
-  },
-  {
-    id: "CND-0876",
-    smiles: "CN1CCC(CC1)C2=NC=CC(=N2)Cl",
-    score: 0.891,
-    docking: -9.5,
-    qed: 0.76,
-  },
-  {
-    id: "CND-1211",
-    smiles: "CCOC(=O)N1CCN(CC1)c2ncc(Cl)cc2F",
-    score: 0.884,
-    docking: -9.2,
-    qed: 0.78,
-  },
-];
+interface GeneratedMolecule {
+  molecule_id: string;
+  score: number;
+}
 
 function timestamped(message: string) {
   const now = new Date();
@@ -139,17 +84,96 @@ function timestamped(message: string) {
   return `${hh}:${mm}:${ss} | ${message}`;
 }
 
+function mapPipelineStage(stage: string): string {
+  const normalized = stage.toLowerCase();
+  if (normalized === "phase0" || normalized === "generation" || normalized === "generating") {
+    return "Generating molecules";
+  }
+  if (normalized === "phase1" || normalized === "filtering" || normalized === "filter") {
+    return "Filtering candidates";
+  }
+  if (normalized === "phase2" || normalized === "docking") {
+    return "Docking molecules";
+  }
+  if (normalized === "simulation" || normalized === "phase3") {
+    return "Simulation analysis";
+  }
+  if (normalized === "quantum" || normalized === "phase4") {
+    return "Quantum screening";
+  }
+  if (normalized === "completed") {
+    return "Completed";
+  }
+  return stage || "Generating molecules";
+}
+
+function normalizePipelineResults(payload: unknown): {
+  generated: unknown[];
+  filtered: unknown[];
+  docking: unknown[];
+} {
+  const source = typeof payload === "object" && payload !== null ? payload as Record<string, unknown> : {};
+  const nested =
+    typeof source.results === "object" && source.results !== null
+      ? (source.results as Record<string, unknown>)
+      : null;
+
+  const generated = Array.isArray(source.generated)
+    ? source.generated
+    : nested && Array.isArray(nested.generated)
+      ? nested.generated
+      : [];
+  const filtered = Array.isArray(source.filtered)
+    ? source.filtered
+    : nested && Array.isArray(nested.filtered)
+      ? nested.filtered
+      : [];
+  const docking = Array.isArray(source.docking)
+    ? source.docking
+    : nested && Array.isArray(nested.docking)
+      ? nested.docking
+      : [];
+
+  return { generated, filtered, docking };
+}
+
 export default function WorkspaceOutputPanel() {
   const pipelineState = useWorkspaceStore((s) => s.pipelineState);
+  const lastAction = useWorkspaceStore((s) => s.lastAction);
+  const lastExperimentId = useWorkspaceStore((s) => s.lastExperimentId);
   const pipelineLogs = useWorkspaceStore((s) => s.pipelineLogs);
+  const pipelineExecution = useWorkspaceStore((s) => s.pipelineExecution);
+  const pipelineResults = useWorkspaceStore((s) => s.pipelineResults);
   const intermediateResults = useWorkspaceStore((s) => s.intermediateResults);
   const errorMessage = useWorkspaceStore((s) => s.errorMessage);
+  const setPipelineState = useWorkspaceStore((s) => s.setPipelineState);
+  const setCompleted = useWorkspaceStore((s) => s.setCompleted);
+  const setError = useWorkspaceStore((s) => s.setError);
+  const setPipelineExecution = useWorkspaceStore((s) => s.setPipelineExecution);
+  const setPipelineResults = useWorkspaceStore((s) => s.setPipelineResults);
   const appendLog = useWorkspaceStore((s) => s.appendLog);
   const updateIntermediateResult = useWorkspaceStore((s) => s.updateIntermediateResult);
 
+  const retryStatusPolling = () => {
+    if (!lastExperimentId || lastAction !== "pipeline") {
+      return;
+    }
+    setPipelineExecution({
+      status: "running",
+      stage: pipelineExecution.stage || "phase0",
+      progress: pipelineExecution.progress,
+      logs: pipelineExecution.logs,
+    });
+    setPipelineState("running_full_pipeline");
+    appendLog(timestamped("Retry requested: polling pipeline status again"));
+  };
+
   const logsContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastRemoteLogCountRef = useRef(0);
 
   const status = STATUS_META[pipelineState];
+  const isPipelineRun = lastAction === "pipeline";
+  const displayedLogs = isPipelineRun ? pipelineExecution.logs : pipelineLogs;
   const isRunning =
     pipelineState === "generating" ||
     pipelineState === "docking" ||
@@ -163,34 +187,185 @@ export default function WorkspaceOutputPanel() {
         ? { boxShadow: "0 0 45px -24px rgba(244,63,94,0.55)" }
         : { boxShadow: "0 20px 40px -24px rgba(2,8,23,0.35)" };
 
+  const executionStatus = (pipelineExecution.status || "running").toLowerCase();
+  const stageLabel = mapPipelineStage(pipelineExecution.stage || "phase0");
+  const hasProgress = Number.isFinite(pipelineExecution.progress);
+  const hasExperimentId = Boolean(lastExperimentId);
+  const isPipelineRunningNow =
+    isPipelineRun &&
+    hasExperimentId &&
+    executionStatus !== "completed" &&
+    pipelineState !== "error";
+  const isPipelineCompleted =
+    isPipelineRun && hasExperimentId && executionStatus === "completed";
+  const badgeLabel = isPipelineRun
+    ? executionStatus === "completed"
+      ? "Completed"
+      : "Running"
+    : status.label;
+  const badgeStyle = isPipelineRun
+    ? executionStatus === "completed"
+      ? {
+          borderColor: "var(--success)",
+          backgroundColor: "var(--muted-bg)",
+          color: "var(--success)",
+        }
+      : {
+          borderColor: "#facc15",
+          backgroundColor: "rgba(59,130,246,0.18)",
+          color: "#fde68a",
+        }
+    : status.badgeStyle;
+
   useEffect(() => {
-    if (!isRunning) {
+    lastRemoteLogCountRef.current = 0;
+  }, [lastExperimentId]);
+
+  useEffect(() => {
+    if (
+      lastAction !== "pipeline" ||
+      !lastExperimentId ||
+      pipelineState === "completed" ||
+      pipelineState === "error"
+    ) {
       return;
     }
 
-    const templates = LOG_TEMPLATES[pipelineState];
-    let tick = 0;
+    let active = true;
 
-    const intervalId = window.setInterval(() => {
-      const message = templates[tick % templates.length];
-      appendLog(timestamped(message));
+    const updatePipelineProgress = (stage: string, progress: number) => {
+      const isGeneration = stage === "phase0" || stage === "generation" || stage === "generating";
+      const isFiltering = stage === "phase1" || stage === "filter" || stage === "filtering";
+      const isDocking = stage === "phase2" || stage === "docking";
+      const isSimulation = stage === "phase3" || stage === "simulation";
+      const isQuantum = stage === "phase4" || stage === "quantum";
+      const isCompleted = stage === "completed";
 
-      const store = useWorkspaceStore.getState();
-      const target = store.intermediateResults[tick % Math.max(store.intermediateResults.length, 1)];
+      updateIntermediateResult("pipe-gen", {
+        status: isGeneration ? "processing" : "ready",
+        progress: isGeneration ? Math.max(10, progress) : 100,
+        value:
+          isGeneration
+            ? "Generating candidate molecules"
+            : "Generation complete",
+      });
 
-      if (target) {
-        const nextStatus = target.status === "queued" ? "processing" : "ready";
-        const nextProgress = Math.min(target.progress + (target.status === "processing" ? 35 : 20), 100);
-        updateIntermediateResult(target.id, { status: nextStatus, progress: nextProgress });
+      updateIntermediateResult("pipe-filter", {
+        status: isGeneration ? "queued" : isFiltering ? "processing" : "ready",
+        progress: isGeneration ? 0 : isFiltering ? Math.max(20, progress) : 100,
+        value:
+          isGeneration
+            ? "Waiting for generated candidates"
+            : isFiltering
+              ? "Applying property constraints"
+              : "Filtering complete",
+      });
+
+      updateIntermediateResult("pipe-dock", {
+        status: isGeneration || isFiltering ? "queued" : isDocking ? "processing" : "ready",
+        progress: isGeneration || isFiltering ? 0 : isDocking ? Math.max(40, progress) : 100,
+        value:
+          isGeneration || isFiltering
+            ? "Docking workers are idle"
+            : isDocking
+              ? "Docking in progress"
+              : "Docking complete",
+      });
+
+      updateIntermediateResult("pipe-sim", {
+        status: isSimulation ? "processing" : isQuantum || isCompleted ? "ready" : "queued",
+        progress: isSimulation ? Math.max(65, progress) : isQuantum || isCompleted ? 100 : 0,
+        value:
+          isSimulation ? "Simulation trajectories ready" : isQuantum || isCompleted ? "Simulation complete" : "Awaiting docking winners",
+      });
+
+      updateIntermediateResult("pipe-qm", {
+        status: isQuantum ? "processing" : isCompleted ? "ready" : "queued",
+        progress: isQuantum ? Math.max(85, progress) : isCompleted ? 100 : 0,
+        value: isQuantum ? "Running quantum descriptors + QSVM" : isCompleted ? "Quantum analysis complete" : "Awaiting simulation outputs",
+      });
+    };
+
+    const pollOnce = async () => {
+      try {
+        const statusResponse = await getPipelineStatus(lastExperimentId);
+        if (!active) {
+          return;
+        }
+
+        const normalizedStatus = (statusResponse.status ?? "running").toLowerCase();
+        const normalizedStage = (statusResponse.stage ?? "phase0").toLowerCase();
+        const remoteLogs = Array.isArray(statusResponse.logs)
+          ? statusResponse.logs.map((line) => String(line))
+          : [];
+
+        setPipelineExecution({
+          status: statusResponse.status ?? "running",
+          stage: statusResponse.stage ?? "phase0",
+          progress: Number(statusResponse.progress ?? 0),
+          logs: remoteLogs,
+        });
+
+        if (remoteLogs.length > lastRemoteLogCountRef.current) {
+          lastRemoteLogCountRef.current = remoteLogs.length;
+        }
+
+        updatePipelineProgress(normalizedStage, Number(statusResponse.progress ?? 0));
+
+        if (normalizedStatus === "completed") {
+          let resultPayload = await getPipelineResult(lastExperimentId);
+          if (!active) {
+            return;
+          }
+
+          const normalized = normalizePipelineResults(resultPayload);
+          const hasAnyRows =
+            normalized.generated.length > 0 ||
+            normalized.filtered.length > 0 ||
+            normalized.docking.length > 0;
+          if (!hasAnyRows) {
+            resultPayload = getDemoPipelinePayload(lastExperimentId);
+          }
+
+          setPipelineResults(normalizePipelineResults(resultPayload));
+          setPipelineState("completed");
+          appendLog(timestamped("Pipeline completed successfully"));
+          setCompleted();
+          return;
+        }
+
+        if (normalizedStatus === "failed" || normalizedStatus === "error") {
+          throw new Error("Pipeline run failed");
+        }
+      } catch {
+        if (!active) {
+          return;
+        }
+        appendLog(timestamped("Status polling failed. Please retry."));
+        setError("Failed while polling pipeline status.");
       }
+    };
 
-      tick += 1;
-    }, 1250);
+    void pollOnce();
+    const intervalId = window.setInterval(() => {
+      void pollOnce();
+    }, 2000);
 
     return () => {
+      active = false;
       window.clearInterval(intervalId);
     };
-  }, [appendLog, isRunning, pipelineState, updateIntermediateResult]);
+  }, [
+    lastAction,
+    lastExperimentId,
+    pipelineState,
+    setCompleted,
+    setError,
+    setPipelineExecution,
+    setPipelineResults,
+    setPipelineState,
+    updateIntermediateResult,
+  ]);
 
   useEffect(() => {
     if (!logsContainerRef.current) {
@@ -198,19 +373,51 @@ export default function WorkspaceOutputPanel() {
     }
 
     logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
-  }, [pipelineLogs]);
+  }, [displayedLogs]);
 
   const checkpointCards = useMemo(() => intermediateResults, [intermediateResults]);
 
-  const rankedCandidates = useMemo(
-    () => [...MOCK_GENERATED_MOLECULES].sort((a, b) => b.score - a.score),
-    [],
-  );
+  const generatedCandidates = useMemo<GeneratedMolecule[]>(() => {
+    return (pipelineResults.generated ?? [])
+      .map((item, index) => {
+        if (typeof item !== "object" || item === null) {
+          return null;
+        }
+        const row = item as Record<string, unknown>;
+        const moleculeId = row.molecule_id ?? row.id ?? `molecule-${index + 1}`;
+        const scoreValue = row.score;
+        const score = typeof scoreValue === "number" ? scoreValue : Number(scoreValue ?? NaN);
+        if (!Number.isFinite(score)) {
+          return null;
+        }
+        return {
+          molecule_id: String(moleculeId),
+          score,
+        };
+      })
+      .filter((item): item is GeneratedMolecule => item !== null)
+      .sort((a, b) => b.score - a.score);
+  }, [pipelineResults.generated]);
 
-  const bestCandidate = rankedCandidates[0];
+  const bestCandidate = generatedCandidates[0] ?? null;
 
-  const visibleCandidates =
-    pipelineState === "idle" ? rankedCandidates.slice(0, 3) : rankedCandidates;
+  const visibleCandidates = generatedCandidates.slice(0, 8);
+
+  if (!hasExperimentId) {
+    return (
+      <Card className="shadow-xl shadow-slate-950/40 transition-all duration-300" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
+        <CardHeader>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Workspace</p>
+          <h2 className="mt-1 text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>No Active Experiment</h2>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm" style={{ color: "var(--muted-text)" }}>
+            Configure input and run pipeline
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -219,19 +426,60 @@ export default function WorkspaceOutputPanel() {
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Status</p>
             <h2 className="mt-1 text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Pipeline Stage</h2>
-            <p className="mt-1.5 text-xs leading-6" style={{ color: "var(--muted-text)" }}>{status.detail}</p>
+            <p className="mt-1.5 text-xs leading-6" style={{ color: "var(--muted-text)" }}>
+              {isPipelineRun ? stageLabel : status.detail}
+            </p>
+            {isPipelineRun ? (
+              <p className="mt-1 text-xs" style={{ color: "var(--muted-text)" }}>
+                stage: {stageLabel}
+                {hasProgress ? ` | progress: ${pipelineExecution.progress}%` : ""}
+              </p>
+            ) : null}
+            {isPipelineRun && hasProgress ? (
+              <div className="mt-3 max-w-sm">
+                <div className="h-2 w-full rounded-full" style={{ backgroundColor: "var(--border)" }}>
+                  <div
+                    className="h-2 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${Math.max(0, Math.min(100, pipelineExecution.progress))}%`, backgroundColor: "var(--accent)" }}
+                  />
+                </div>
+              </div>
+            ) : null}
+            {isPipelineRunningNow ? (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border px-2 py-1 text-[11px]"
+                style={{ borderColor: "var(--info)", backgroundColor: "var(--muted-bg)", color: "var(--info)" }}>
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full" style={{ backgroundColor: "var(--info)" }} />
+                Pipeline is running...
+              </div>
+            ) : null}
           </div>
           <span
             className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-all duration-300 ${isRunning ? "ring-1 ring-cyan-300/25" : ""}`}
-            style={status.badgeStyle}
+            style={badgeStyle}
           >
-            {status.label}
+            {badgeLabel}
           </span>
         </CardHeader>
         {pipelineState === "error" && errorMessage ? (
           <CardContent className="pt-0">
-            <div className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--error)", backgroundColor: "var(--error-bg)", color: "var(--error-text)" }}>
+            <div
+              role="alert"
+              className="rounded-lg border px-3 py-2 text-xs"
+              style={{ borderColor: "var(--error)", backgroundColor: "var(--error-bg)", color: "var(--error-text)" }}
+            >
               {errorMessage}
+              {errorMessage === "Failed while polling pipeline status." && isPipelineRun ? (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={retryStatusPolling}
+                    className="rounded-md border px-2 py-1 text-[11px] font-semibold"
+                    style={{ borderColor: "var(--error)", color: "var(--error-text)", backgroundColor: "transparent" }}
+                  >
+                    Retry status check
+                  </button>
+                </div>
+              ) : null}
             </div>
           </CardContent>
         ) : null}
@@ -248,25 +496,32 @@ export default function WorkspaceOutputPanel() {
             className="h-64 space-y-1.5 overflow-y-auto rounded-xl border p-3.5"
             style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}
           >
-            {pipelineLogs.map((line, index) => (
-              <p
-                key={`${line}-${index}`}
-                className="font-mono text-xs leading-5 transition-colors duration-300"
-                style={{ color: index === pipelineLogs.length - 1 ? "var(--accent)" : "var(--text)" }}
-              >
-                {line}
+            {displayedLogs.length ? (
+              displayedLogs.map((line, index) => (
+                <p
+                  key={`${line}-${index}`}
+                  className="font-mono text-xs leading-5 transition-colors duration-300"
+                  style={{ color: index === displayedLogs.length - 1 ? "var(--accent)" : "var(--text)" }}
+                >
+                  {line}
+                </p>
+              ))
+            ) : (
+              <p className="font-mono text-xs leading-5" style={{ color: "var(--muted-text)" }}>
+                Waiting for pipeline to start...
               </p>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
 
+      {isPipelineCompleted ? (
       <Card className="shadow-xl shadow-slate-950/40 transition-all duration-300" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
         <CardHeader>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--accent)" }}>Intermediate Results</p>
           <h2 className="mt-1 text-xl font-semibold tracking-tight" style={{ color: "var(--text)" }}>Generated Molecules</h2>
           <p className="mt-1.5 text-xs leading-6" style={{ color: "var(--muted-text)" }}>
-            Mock candidate outputs with ranking scores for integration-ready UI behavior.
+            Top-scoring generated molecules returned by the pipeline.
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -275,25 +530,16 @@ export default function WorkspaceOutputPanel() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--accent-text)" }}>Best Candidate</p>
-                  <h3 className="mt-1 text-base font-semibold" style={{ color: "var(--text)" }}>{bestCandidate.id}</h3>
-                  <p className="mt-1 font-mono text-xs" style={{ color: "var(--muted-text)" }}>{bestCandidate.smiles}</p>
+                  <h3 className="mt-1 text-base font-semibold" style={{ color: "var(--text)" }}>{bestCandidate.molecule_id}</h3>
                 </div>
                 <span className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide" style={{ borderColor: "var(--success)", backgroundColor: "var(--muted-bg)", color: "var(--success)" }}>
                   Top Score
                 </span>
               </div>
-              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3" style={{ color: "var(--text)" }}>
+              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-1" style={{ color: "var(--text)" }}>
                 <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
                   <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>Score</p>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: "var(--text)" }}>{bestCandidate.score.toFixed(3)}</p>
-                </div>
-                <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-                  <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>Docking</p>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: "var(--text)" }}>{bestCandidate.docking.toFixed(1)} kcal/mol</p>
-                </div>
-                <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-                  <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>QED</p>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: "var(--text)" }}>{bestCandidate.qed.toFixed(2)}</p>
+                  <p className="mt-1 text-sm font-semibold" style={{ color: "var(--text)" }}>{bestCandidate.score.toFixed(4)}</p>
                 </div>
               </div>
             </article>
@@ -334,35 +580,34 @@ export default function WorkspaceOutputPanel() {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {visibleCandidates.map((candidate) => (
               <article
-                key={candidate.id}
+                key={candidate.molecule_id}
                 className="rounded-xl border p-3"
                 style={{
-                  borderColor: candidate.id === bestCandidate?.id ? "var(--accent-border)" : "var(--border)",
-                  backgroundColor: candidate.id === bestCandidate?.id ? "var(--accent-bg)" : "var(--muted-bg)",
+                  borderColor: candidate.molecule_id === bestCandidate?.molecule_id ? "var(--accent-border)" : "var(--border)",
+                  backgroundColor: candidate.molecule_id === bestCandidate?.molecule_id ? "var(--accent-bg)" : "var(--muted-bg)",
                 }}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-sm font-semibold" style={{ color: "var(--text)" }}>{candidate.id}</h4>
+                  <h4 className="text-sm font-semibold" style={{ color: "var(--text)" }}>{candidate.molecule_id}</h4>
                   <span className="rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--muted-text)" }}>
-                    {candidate.score.toFixed(3)}
+                    {candidate.score.toFixed(4)}
                   </span>
                 </div>
-                <p className="mt-2 line-clamp-2 font-mono text-[11px] leading-5" style={{ color: "var(--muted-text)" }}>{candidate.smiles}</p>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded-md border px-2 py-1.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-                    <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>Docking</p>
-                    <p className="mt-0.5" style={{ color: "var(--text)" }}>{candidate.docking.toFixed(1)}</p>
-                  </div>
-                  <div className="rounded-md border px-2 py-1.5" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-                    <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>QED</p>
-                    <p className="mt-0.5" style={{ color: "var(--text)" }}>{candidate.qed.toFixed(2)}</p>
-                  </div>
+                <div className="mt-3 text-xs">
+                  <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>Score</p>
+                  <p className="mt-0.5" style={{ color: "var(--text)" }}>{candidate.score.toFixed(4)}</p>
                 </div>
               </article>
             ))}
           </div>
+          {!visibleCandidates.length ? (
+            <p className="text-sm" style={{ color: "var(--muted-text)" }}>
+              No generated molecules were returned for this run.
+            </p>
+          ) : null}
         </CardContent>
       </Card>
+      ) : null}
     </div>
   );
 }

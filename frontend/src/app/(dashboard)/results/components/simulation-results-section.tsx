@@ -12,13 +12,6 @@ import {
   YAxis,
 } from "recharts";
 
-const SUMMARY_METRICS = [
-  { label: "Average RMSD", value: "1.57 Å" },
-  { label: "Peak RMSD", value: "1.95 Å" },
-  { label: "Drift", value: "+0.75 Å" },
-  { label: "Frames", value: "13" },
-];
-
 function formatTime(value: number): string {
   return `${value} ns`;
 }
@@ -76,7 +69,11 @@ export function SimulationResultsSection({
 
   const values = filteredItems.map((point) => point.rmsd);
   const chartData = filteredItems.map((point) => ({ time: point.time, rmsd: point.rmsd }));
+  const start = filteredItems[0]?.rmsd ?? 0;
+  const end = filteredItems[filteredItems.length - 1]?.rmsd ?? 0;
   const averageRmsd = values.reduce((sum, value) => sum + value, 0) / values.length;
+  const peakRmsd = Math.max(...values);
+  const drift = end - start;
   const stable = averageRmsd < 2.0 && Math.max(...values) < 2.5;
   const stabilityLabel = stable ? "Stable" : "Unstable";
   const stabilityClass = stable
@@ -121,9 +118,7 @@ export function SimulationResultsSection({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-100">Simulation Results</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            API placeholder RMSD evolution across a 60 ns trajectory with a stability summary.
-          </p>
+          <p className="mt-1 text-xs text-slate-400">RMSD evolution and trajectory stability profile from the simulation stage.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -141,11 +136,19 @@ export function SimulationResultsSection({
           >
             {stabilityLabel}
           </span>
+          <span className="inline-flex w-fit items-center rounded-full border border-cyan-300/40 bg-cyan-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+            Demo Data (Precomputed)
+          </span>
         </div>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {SUMMARY_METRICS.map((metric) => (
+        {[
+          { label: "Average RMSD", value: formatRmsd(averageRmsd) },
+          { label: "Peak RMSD", value: formatRmsd(peakRmsd) },
+          { label: "Drift", value: `${drift >= 0 ? "+" : ""}${drift.toFixed(2)} Å` },
+          { label: "Frames", value: String(filteredItems.length) },
+        ].map((metric) => (
           <article
             key={metric.label}
             className="rounded-xl border border-white/10 bg-slate-950/60 p-4"
@@ -167,7 +170,7 @@ export function SimulationResultsSection({
             </div>
             <div className="text-right text-xs text-slate-400">
               <p>Min {formatRmsd(Math.min(...values))}</p>
-              <p>Max {formatRmsd(Math.max(...values))}</p>
+              <p>Max {formatRmsd(peakRmsd)}</p>
             </div>
           </div>
 

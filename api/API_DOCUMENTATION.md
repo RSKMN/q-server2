@@ -12,6 +12,7 @@ The P3 Research Lab API provides RESTful endpoints for:
 - **Health monitoring** – Service health checks and status
 - **Molecule similarity search** – Find structurally similar molecules using embeddings
 - **Embedding management** – Insert and manage vector embeddings in Milvus
+- **Pipeline orchestration** – Run pipeline jobs, poll status, and fetch generated results
 - **Experiment tracking** – Track ML training experiments, runs, and metrics
 
 All endpoints return JSON responses. Errors follow HTTP status codes and return error detail messages.
@@ -398,7 +399,111 @@ def batch_insert_embeddings(embeddings_file, batch_size=1000):
 
 ---
 
-### 4. Experiments
+### 4. Pipeline Orchestration
+
+The pipeline router is mounted at `/pipeline` in `api/main.py`.
+
+#### `POST /pipeline/run`
+Start a full pipeline run for the selected protein target and constraints.
+
+**Request Body (JSON):**
+```json
+{
+  "protein": "EGFR",
+  "constraints": {
+    "logp": 2.4,
+    "qed": 0.78,
+    "toxicity": "Low"
+  }
+}
+```
+
+**Request Schema:**
+```typescript
+{
+  "protein": string,
+  "constraints": {
+    "logp": number,
+    "qed": number,
+    "toxicity": "Low" | "Medium" | "High"
+  }
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "experiment_id": "exp_123456"
+}
+```
+
+**Example:**
+```bash
+curl -X POST "http://localhost:8000/pipeline/run" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "protein": "EGFR",
+    "constraints": {
+      "logp": 2.4,
+      "qed": 0.78,
+      "toxicity": "Low"
+    }
+  }'
+```
+
+#### `GET /pipeline/status/{experiment_id}`
+Poll the current pipeline run state.
+
+**Path Parameter:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `experiment_id` | string | Pipeline experiment identifier |
+
+**Response (200 OK):**
+```json
+{
+  "status": "running",
+  "stage": "phase1",
+  "progress": 50,
+  "logs": [
+    "Pipeline started",
+    "Filtering candidates"
+  ]
+}
+```
+
+**Stage Values:**
+- `phase0` - Generating molecules
+- `phase1` - Filtering candidates
+- `phase2` - Docking molecules
+- `completed` - Completed
+
+#### `GET /pipeline/results/{experiment_id}`
+Fetch completed results for a finished pipeline run.
+
+**Path Parameter:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `experiment_id` | string | Pipeline experiment identifier |
+
+**Response:**
+The backend proxies the AI service response as JSON or the upstream content type. The frontend currently expects a payload with fields such as:
+```json
+{
+  "generated": [
+    {
+      "molecule_id": "mol_001",
+      "score": 0.91
+    }
+  ],
+  "filtered": [],
+  "docking": []
+}
+```
+
+---
+
+### 5. Experiments
 
 #### `POST /experiments`
 Create a new experiment for tracking ML training runs.

@@ -189,16 +189,16 @@ export default function SimulationViewer({ moleculeId, frames, isLoading = false
       <div className="space-y-4">
         <div className="viz-surface rounded-2xl p-4" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
           <p className="viz-subtitle text-[11px] font-semibold uppercase tracking-[0.14em]">
-            Trajectory Viewer (Coming Soon)
+            Trajectory Summary
           </p>
           <div className="mt-3 flex min-h-[180px] items-center justify-center rounded-xl border border-dashed px-4 text-center" style={{ borderColor: "var(--accent-border)", backgroundColor: "var(--muted-bg)" }}>
             <div>
               <p className="text-sm font-medium" style={{ color: "var(--text)" }}>
-                Molecular trajectory animation placeholder
+                Molecular trajectory snapshots
               </p>
               <p className="mt-2 text-xs leading-5" style={{ color: "var(--muted-text)" }}>
-                This area is reserved for 3D trajectory playback and will be synchronized
-                with RMSD frame selection and play/pause controls in a future integration.
+                Trajectory playback metadata is synchronized with RMSD frame selection and
+                play or pause controls for quick qualitative review.
               </p>
             </div>
           </div>

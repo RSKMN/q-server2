@@ -35,6 +35,16 @@ import { ResultsPageSkeleton } from "@/components/shared/skeletons";
 import { ApiErrorState } from "@/components/shared/states";
 import { EmptyState } from "@/components/shared/states";
 import { toFriendlyErrorMessage } from "@/services/api";
+import {
+  DEMO_ARTIFACTS,
+  DEMO_DOCKING_RESULTS,
+  DEMO_FILTERED_CANDIDATES,
+  DEMO_GENERATED_MOLECULES,
+  DEMO_OVERVIEW,
+  DEMO_QUANTUM_RESULTS,
+  DEMO_SIMULATION_RESULTS,
+  DEMO_VIDEO_URL,
+} from "@/services/pipelineDemo";
 
 function filterArtifacts(items: ResultArtifact[], keywords: string[]): ResultArtifact[] {
   return items.filter((artifact) => {
@@ -57,6 +67,7 @@ export default function ResultsPage() {
   const [artifacts, setArtifacts] = useState<ResultArtifactsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isUsingDemoData, setIsUsingDemoData] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
@@ -86,13 +97,22 @@ export default function ResultsPage() {
         ]);
 
         if (!active) return;
-        setOverview(overviewData);
-        setGeneratedMolecules(generatedData);
-        setDockingResults(dockingData);
-        setSimulationResults(simulationData);
-        setQuantumResults(quantumData);
-        setFilteredRanked(filteredData);
-        setArtifacts(artifactsData);
+
+        const useDemoData =
+          generatedData.length === 0 &&
+          dockingData.length === 0 &&
+          simulationData.length === 0 &&
+          quantumData.length === 0 &&
+          (filteredData.items?.length ?? 0) === 0;
+
+        setIsUsingDemoData(useDemoData);
+        setOverview(useDemoData ? DEMO_OVERVIEW : overviewData);
+        setGeneratedMolecules(useDemoData ? DEMO_GENERATED_MOLECULES : generatedData);
+        setDockingResults(useDemoData ? DEMO_DOCKING_RESULTS : dockingData);
+        setSimulationResults(useDemoData ? DEMO_SIMULATION_RESULTS : simulationData);
+        setQuantumResults(useDemoData ? DEMO_QUANTUM_RESULTS : quantumData);
+        setFilteredRanked(useDemoData ? DEMO_FILTERED_CANDIDATES : filteredData);
+        setArtifacts(useDemoData ? DEMO_ARTIFACTS : artifactsData);
       } catch (err) {
         if (!active) return;
         setError(toFriendlyErrorMessage(err, "Results are temporarily unavailable."));
@@ -248,6 +268,7 @@ export default function ResultsPage() {
             <>
               <SimulationResultsSection
                 items={simulationResults}
+                simulationVideoUrl={isUsingDemoData ? DEMO_VIDEO_URL : null}
                 searchQuery={searchQuery}
                 scoreBand={scoreBand}
                 stabilityBand={stabilityBand}

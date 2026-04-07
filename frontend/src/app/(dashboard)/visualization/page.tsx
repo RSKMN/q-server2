@@ -15,6 +15,10 @@ import {
   type VisualizationEmbeddingPoint,
   type VisualizationMoleculeStructure,
 } from "@/services";
+import {
+  DEMO_GENERATED_MOLECULES,
+  DEMO_SIMULATION_RESULTS,
+} from "@/services/pipelineDemo";
 import type { SimulationResult } from "@/types/api";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -115,6 +119,18 @@ function buildEmbeddings(molecules: VisualizationMoleculeStructure[]): Visualiza
   });
 }
 
+function buildDemoMolecules(): VisualizationMoleculeStructure[] {
+  return DEMO_GENERATED_MOLECULES.map((molecule) => ({
+    molecule_id: molecule.molecule_id,
+    dataset: "demo",
+    smiles: molecule.smiles,
+    mw: molecule.molecular_weight,
+    logp: molecule.logp,
+    qed: molecule.qed,
+    pdb: "",
+  })).slice(0, 5);
+}
+
 function normalizeSimulationRows(payload: Record<string, unknown> | null): SimulationResult[] {
   const nested = asRecord(payload?.results);
   const simulationNode = asRecord(nested?.simulation) ?? asRecord(payload?.simulation);
@@ -174,10 +190,12 @@ export default function VisualizationPage() {
         if (!active) return;
 
         if (!experiments.length) {
-          setEmbeddings([]);
-          setSimulationResults([]);
-          setMolecules([]);
-          setSelectedMoleculeId("");
+          const demoMolecules = buildDemoMolecules();
+          const demoEmbeddings = buildEmbeddings(demoMolecules);
+          setEmbeddings(demoEmbeddings);
+          setSimulationResults(DEMO_SIMULATION_RESULTS);
+          setMolecules(demoMolecules);
+          setSelectedMoleculeId(demoEmbeddings[0]?.molecule_id ?? "");
           return;
         }
 
@@ -192,12 +210,16 @@ export default function VisualizationPage() {
 
         const payload = asRecord(pipelineResult);
         const realMolecules = normalizeMoleculeRows(payload);
-        const embeddingRows = buildEmbeddings(realMolecules);
         const simulationRows = normalizeSimulationRows(payload);
+        const useDemoData = realMolecules.length === 0 && simulationRows.length === 0;
+
+        const moleculesToUse = useDemoData ? buildDemoMolecules() : realMolecules;
+        const simulationRowsToUse = useDemoData ? DEMO_SIMULATION_RESULTS : simulationRows;
+        const embeddingRows = buildEmbeddings(moleculesToUse);
 
         setEmbeddings(embeddingRows);
-        setSimulationResults(simulationRows);
-        setMolecules(realMolecules);
+        setSimulationResults(simulationRowsToUse);
+        setMolecules(moleculesToUse);
 
         setSelectedMoleculeId((current) => current || embeddingRows[0]?.molecule_id || "");
       } finally {

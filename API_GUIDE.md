@@ -11,7 +11,7 @@ Welcome! This guide helps you navigate the P3 Research Lab REST API documentatio
 
 Complete professional API documentation with:
 - ✅ Overview and quick start
-- ✅ All 8 endpoints fully documented
+- ✅ All 11 endpoints fully documented
 - ✅ Request/response schemas with examples
 - ✅ Error handling and status codes
 - ✅ Configuration and environment variables
@@ -67,6 +67,9 @@ curl http://localhost:8000/health
 | GET | `/` | Root status | [Link](#root-endpoint) |
 | POST | `/molecules/similar` | Find similar molecules | [Link](#molecule-similarity-search) |
 | POST | `/embeddings` | Insert embeddings | [Link](#embedding-insertion) |
+| POST | `/pipeline/run` | Start pipeline run | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
+| GET | `/pipeline/status/{experiment_id}` | Poll pipeline status | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
+| GET | `/pipeline/results/{experiment_id}` | Fetch pipeline results | [Link](api/API_DOCUMENTATION.md#4-pipeline-orchestration) |
 | POST | `/experiments` | Create experiment | [Link](#experiment-management) |
 | POST | `/experiments/{id}/run` | Start run | [Link](#experiment-management) |
 | POST | `/runs/{id}/metrics` | Log metrics | [Link](#experiment-management) |
@@ -114,6 +117,29 @@ curl -X POST "http://localhost:8000/experiments/{id}/run" \
   -d '{"hyperparameters": {"lr": 0.001}}'
 ```
 
+### Run Pipeline Workflow
+**Documentation**: [api/API_DOCUMENTATION.md#4-pipeline-orchestration](api/API_DOCUMENTATION.md#4-pipeline-orchestration)
+
+```bash
+# Start pipeline
+curl -X POST "http://localhost:8000/pipeline/run" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "protein": "EGFR",
+    "constraints": {
+      "logp": 2.4,
+      "qed": 0.78,
+      "toxicity": "Low"
+    }
+  }'
+
+# Poll status
+curl "http://localhost:8000/pipeline/status/exp_123456"
+
+# Fetch results
+curl "http://localhost:8000/pipeline/results/exp_123456"
+```
+
 ---
 
 ## 🔧 Configuration
@@ -143,7 +169,7 @@ curl http://localhost:8000/health  # Verify API
 ### Complete Documentation
 - [api/API_DOCUMENTATION.md](api/API_DOCUMENTATION.md) — 15 minute read
   - Overview & quick start
-  - Endpoint reference (8 endpoints)
+  - Endpoint reference (11 endpoints)
   - HTTP status codes
   - Configuration
   - Performance & limits

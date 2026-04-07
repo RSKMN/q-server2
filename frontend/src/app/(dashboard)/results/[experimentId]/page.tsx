@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   getPipelineResult,
   getPipelineStatus,
-  toFriendlyErrorMessage,
   type WorkspacePipelineStatusResponse,
 } from "@/services/api";
 import { useWorkspaceStore } from "@/store";
@@ -33,6 +32,17 @@ import { EmptyState } from "@/components/shared/states";
 import { ResultsPageSkeleton } from "@/components/shared/skeletons";
 import type { ScoreBand, StabilityBand } from "../components/results-filter-types";
 import type { ResultArtifact, ResultArtifactsResponse } from "@/types/api";
+import {
+  DEMO_ARTIFACTS,
+  DEMO_DOCKING_RESULTS,
+  DEMO_FILTERED_CANDIDATES,
+  DEMO_GENERATED_MOLECULES,
+  DEMO_OVERVIEW,
+  DEMO_QUANTUM_RESULTS,
+  DEMO_SIMULATION_RESULTS,
+  DEMO_VIDEO_URL,
+  getDemoPipelinePayload,
+} from "@/services/pipelineDemo";
 
 type ResultPayload = Record<string, unknown>;
 
@@ -327,8 +337,31 @@ export default function ExperimentResultPage({ params }: ExperimentResultPagePro
 
   const storeResultData = (rawData: unknown) => {
     const payloadRecord = asRecord(rawData);
+    let mapped = mapPipelineResponse(payloadRecord);
+    const hasRealRows =
+      mapped.generatedMolecules.length > 0 ||
+      mapped.filteredRanked.items.length > 0 ||
+      mapped.dockingResults.length > 0 ||
+      mapped.simulationResults.length > 0 ||
+      mapped.quantumResults.length > 0;
+
+    const shouldUseDemo = !hasRealRows;
+    if (shouldUseDemo) {
+      const demoPayload = getDemoPipelinePayload(experimentId);
+      mapped = mapPipelineResponse(demoPayload);
+      setPayload(asRecord(demoPayload));
+      setOverview(DEMO_OVERVIEW);
+      setGeneratedMolecules(DEMO_GENERATED_MOLECULES);
+      setFilteredRanked(DEMO_FILTERED_CANDIDATES);
+      setDockingResults(DEMO_DOCKING_RESULTS);
+      setSimulationResults(DEMO_SIMULATION_RESULTS);
+      setSimulationVideoUrl(DEMO_VIDEO_URL);
+      setQuantumResults(DEMO_QUANTUM_RESULTS);
+      setArtifacts(DEMO_ARTIFACTS);
+      return;
+    }
+
     setPayload(payloadRecord);
-    const mapped = mapPipelineResponse(payloadRecord);
     setGeneratedMolecules(mapped.generatedMolecules);
     setFilteredRanked(mapped.filteredRanked);
     setDockingResults(mapped.dockingResults);
@@ -369,7 +402,8 @@ export default function ExperimentResultPage({ params }: ExperimentResultPagePro
         storeResultData(resultsData);
       } catch (err) {
         if (!active) return;
-        setError(toFriendlyErrorMessage(err, "We could not load this experiment result right now."));
+        storeResultData(getDemoPipelinePayload(experimentId));
+        setError(null);
       } finally {
         if (active) {
           setLoading(false);

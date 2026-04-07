@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import MoleculeTable from "@/components/molecules/MoleculeTable";
+import MoleculeViewer from "@/components/molecules/MoleculeViewer";
 import { MOCK_MOLECULES } from "@/components/molecules/mockMolecules";
 import { useUiStore } from "@/store/uiStore";
 
 export default function MoleculesPage() {
   const selectedMoleculeId = useUiStore((s) => s.selectedMoleculeId);
   const setSelectedMolecule = useUiStore((s) => s.setSelectedMolecule);
+  const isRightPanelOpen = useUiStore((s) => s.isRightPanelOpen);
   const setRightPanelOpen = useUiStore((s) => s.setRightPanelOpen);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -181,16 +183,55 @@ export default function MoleculesPage() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-lg" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-        <MoleculeTable
-          data={filteredMolecules}
-          isLoading={isLoading}
-          selectedId={selectedMoleculeId}
-          onRowSelect={(molecule) => {
-            setSelectedMolecule(molecule.molecule_id);
-            setRightPanelOpen(true);
-          }}
-        />
+      <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-lg" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+          <MoleculeTable
+            data={filteredMolecules}
+            isLoading={isLoading}
+            selectedId={selectedMoleculeId}
+            onRowSelect={(molecule) => {
+              setSelectedMolecule(molecule.molecule_id);
+              setRightPanelOpen(true);
+            }}
+          />
+        </div>
+
+        <aside
+          className={`hidden min-h-0 flex-shrink-0 overflow-hidden rounded-xl border shadow-lg lg:flex lg:flex-col ${isRightPanelOpen ? "w-[26rem]" : "w-[3rem]"}`}
+          style={{ borderColor: "var(--border)", background: "var(--card)", transition: "width 220ms ease" }}
+        >
+          {!isRightPanelOpen ? (
+            <button
+              type="button"
+              onClick={() => setRightPanelOpen(true)}
+              className="m-2 inline-flex h-8 w-8 items-center justify-center rounded-md border text-sm font-semibold"
+              style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--muted-bg)" }}
+              aria-label="Open molecule viewer"
+            >
+              <span aria-hidden="true">&lt;</span>
+            </button>
+          ) : (
+            <>
+              <div className="flex h-11 items-center justify-between border-b px-3" style={{ borderColor: "var(--border)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--muted-text)" }}>
+                  Molecule Viewer
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRightPanelOpen(false)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border text-sm font-semibold"
+                  style={{ borderColor: "var(--border)", color: "var(--text)", backgroundColor: "var(--muted-bg)" }}
+                  aria-label="Close molecule viewer"
+                >
+                  <span aria-hidden="true">&gt;</span>
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <MoleculeViewer moleculeId={selectedMoleculeId} />
+              </div>
+            </>
+          )}
+        </aside>
       </div>
     </div>
   );

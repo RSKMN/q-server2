@@ -1,9 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardHeader } from "@/components/ui";
-import { createPipelineExperiment, runDocking, runPipeline } from "@/services";
+import { ApiError, runDocking, runPipeline } from "@/services";
 import { useWorkspaceStore } from "@/store";
 import type { IntermediateResultItem } from "@/store/workspaceStore";
 
@@ -37,7 +36,6 @@ const actionConfig: Array<{
 
 export default function WorkspaceActionButtons() {
   const actionLockRef = useRef(false);
-  const router = useRouter();
 
   const pipelineState = useWorkspaceStore((s) => s.pipelineState);
   const lastAction = useWorkspaceStore((s) => s.lastAction);
@@ -48,6 +46,7 @@ export default function WorkspaceActionButtons() {
   const clearLogs = useWorkspaceStore((s) => s.clearLogs);
   const appendLog = useWorkspaceStore((s) => s.appendLog);
   const setIntermediateResults = useWorkspaceStore((s) => s.setIntermediateResults);
+  const setPipelineExecution = useWorkspaceStore((s) => s.setPipelineExecution);
   const workspaceInput = useWorkspaceStore((s) => s.workspaceInput);
 
   const pipelineInProgress =
@@ -73,8 +72,10 @@ export default function WorkspaceActionButtons() {
 
     return [
       { id: "pipe-gen", label: "Generation", value: "Bootstrapping molecular generation", status: "queued", progress: 0 },
+      { id: "pipe-filter", label: "Filtering", value: "Waiting for generated candidates", status: "queued", progress: 0 },
       { id: "pipe-dock", label: "Docking", value: "Docking workers are idle", status: "queued", progress: 0 },
-      { id: "pipe-rank", label: "Ranking", value: "Waiting for upstream outputs", status: "queued", progress: 0 },
+      { id: "pipe-sim", label: "Simulation", value: "Awaiting docking winners", status: "queued", progress: 0 },
+      { id: "pipe-qm", label: "Quantum", value: "Awaiting simulation outputs", status: "queued", progress: 0 },
     ];
   };
 
@@ -90,6 +91,25 @@ export default function WorkspaceActionButtons() {
     const mm = String(now.getMinutes()).padStart(2, "0");
     const ss = String(now.getSeconds()).padStart(2, "0");
     return `${hh}:${mm}:${ss} | ${message}`;
+  };
+
+  const normalizeToxicity = (value: string | number | boolean | undefined): string => {
+    if (typeof value === "string") {
+      return value;
+    }
+    if (typeof value === "boolean") {
+      return value ? "High" : "Low";
+    }
+    if (typeof value === "number") {
+      if (value >= 0.66) {
+        return "High";
+      }
+      if (value >= 0.33) {
+        return "Medium";
+      }
+      return "Low";
+    }
+    return "Low";
   };
 
   const runningAction: WorkspaceAction | null =
@@ -117,19 +137,26 @@ export default function WorkspaceActionButtons() {
     try {
       const response = await runPipeline({
         protein: workspaceInput.protein,
-        constraints: workspaceInput.constraints,
-      });
-      await createPipelineExperiment({
-        experiment_id: response.experimentId,
-        protein: workspaceInput.protein,
+        constraints: {
+          logp: Number(workspaceInput.constraints.logP ?? 0),
+          qed: Number(workspaceInput.constraints.qed ?? 0),
+          toxicity: normalizeToxicity(workspaceInput.constraints.toxicity),
+        },
       });
 
       setLastExperimentId(response.experimentId);
+      setPipelineExecution({
+        status: "running",
+        stage: "phase0",
+        progress: 0,
+        logs: [],
+      });
       appendLog(timestamped(`Pipeline run started: ${response.experimentId}`));
-      setCompleted();
-      router.push(`/results/${response.experimentId}`);
-    } catch {
-      const errorMessage = "Failed to trigger the selected pipeline action.";
+    } catch (error) {
+      const errorMessage =
+        error instanceof ApiError && typeof error.status === "number"
+          ? `Pipeline API request failed (${error.status}).`
+          : "Failed to trigger the selected pipeline action.";
       appendLog(timestamped(`Error: ${errorMessage}`));
       setError(errorMessage);
     } finally {
@@ -155,15 +182,10 @@ export default function WorkspaceActionButtons() {
           protein: workspaceInput.protein,
           constraints: {},
         });
-        await createPipelineExperiment({
-          experiment_id: response.experimentId,
-          protein: workspaceInput.protein,
-        });
 
         setLastExperimentId(response.experimentId);
         appendLog(timestamped(`Pipeline run started: ${response.experimentId}`));
         setCompleted();
-        router.push(`/results/${response.experimentId}`);
         return;
       }
 
@@ -183,8 +205,11 @@ export default function WorkspaceActionButtons() {
       setIntermediateResults(finalized);
       appendLog(timestamped("Pipeline completed successfully"));
       setCompleted();
-    } catch {
-      const errorMessage = "Failed to trigger the selected pipeline action.";
+    } catch (error) {
+      const errorMessage =
+        error instanceof ApiError && typeof error.status === "number"
+          ? `Pipeline API request failed (${error.status}).`
+          : "Failed to trigger the selected pipeline action.";
       appendLog(timestamped(`Error: ${errorMessage}`));
       setError(errorMessage);
     } finally {

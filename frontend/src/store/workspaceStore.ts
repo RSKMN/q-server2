@@ -19,6 +19,19 @@ export interface IntermediateResultItem {
   progress: number;
 }
 
+export interface PipelineExecutionSnapshot {
+  status: string;
+  stage: string;
+  progress: number;
+  logs: string[];
+}
+
+export interface PipelineResultsSnapshot {
+  generated: unknown[];
+  filtered: unknown[];
+  docking: unknown[];
+}
+
 interface WorkspaceStoreState {
   pipelineState: PipelineState;
   lastAction: PipelineAction | null;
@@ -27,6 +40,8 @@ interface WorkspaceStoreState {
   errorMessage: string | null;
   pipelineLogs: string[];
   intermediateResults: IntermediateResultItem[];
+  pipelineExecution: PipelineExecutionSnapshot;
+  pipelineResults: PipelineResultsSnapshot;
   setPipelineState: (state: PipelineState) => void;
   startAction: (action: PipelineAction) => void;
   setCompleted: () => void;
@@ -35,6 +50,8 @@ interface WorkspaceStoreState {
   resetPipeline: () => void;
   appendLog: (entry: string) => void;
   clearLogs: () => void;
+  setPipelineExecution: (execution: PipelineExecutionSnapshot) => void;
+  setPipelineResults: (results: PipelineResultsSnapshot) => void;
   setIntermediateResults: (items: IntermediateResultItem[]) => void;
   setWorkspaceInput: (input: Partial<ExperimentInput>) => void;
   updateIntermediateResult: (
@@ -54,7 +71,7 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
   lastAction: null,
   lastExperimentId: null,
   workspaceInput: {
-    protein: "MNSRSLVQEP...GQGAFGTVYKGLWIPEGEK",
+    protein: "EGFR",
     constraints: {
       logP: 2.4,
       qed: 0.78,
@@ -64,6 +81,17 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
   errorMessage: null,
   pipelineLogs: ["System ready. Select a pipeline action to begin."],
   intermediateResults: [],
+  pipelineExecution: {
+    status: "idle",
+    stage: "phase0",
+    progress: 0,
+    logs: [],
+  },
+  pipelineResults: {
+    generated: [],
+    filtered: [],
+    docking: [],
+  },
 
   setPipelineState: (pipelineState) => set({ pipelineState }),
 
@@ -72,6 +100,11 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       pipelineState: ACTION_TO_STATE[action],
       lastAction: action,
       errorMessage: null,
+      pipelineResults: {
+        generated: [],
+        filtered: [],
+        docking: [],
+      },
     }),
 
   setCompleted: () => set({ pipelineState: "completed", errorMessage: null }),
@@ -92,6 +125,17 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
       errorMessage: null,
       pipelineLogs: ["System reset. Waiting for next action."],
       intermediateResults: [],
+      pipelineExecution: {
+        status: "idle",
+        stage: "phase0",
+        progress: 0,
+        logs: [],
+      },
+      pipelineResults: {
+        generated: [],
+        filtered: [],
+        docking: [],
+      },
     }),
 
   appendLog: (entry) =>
@@ -100,6 +144,10 @@ export const useWorkspaceStore = create<WorkspaceStoreState>((set) => ({
     })),
 
   clearLogs: () => set({ pipelineLogs: [] }),
+
+  setPipelineExecution: (execution) => set({ pipelineExecution: execution }),
+
+  setPipelineResults: (results) => set({ pipelineResults: results }),
 
   setIntermediateResults: (items) => set({ intermediateResults: items }),
 

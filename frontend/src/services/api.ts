@@ -133,7 +133,7 @@ export type WorkspaceToxicityLevel = "Low" | "Medium" | "High";
 export interface WorkspacePipelineRequest {
   protein: string;
   constraints?: {
-    logP?: number;
+    logp?: number;
     qed?: number;
     toxicity?: WorkspaceToxicityLevel;
   };

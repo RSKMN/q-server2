@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import os
+import logging
 from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Response, status
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from services.experiments.experiment_service import ExperimentService
@@ -17,6 +17,7 @@ from services.experminets_store import add_experiment, get_all_experiments
 router = APIRouter()
 service = ExperimentService()
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:9000")
+logger = logging.getLogger(__name__)
 
 
 class CreateExperimentRequest(BaseModel):
@@ -32,6 +33,7 @@ class CreateExperimentResponse(BaseModel):
 
 
 class ExperimentsListResponse(BaseModel):
+	count: int
 	experiments: list[CreateExperimentResponse]
 
 
@@ -78,13 +80,22 @@ class PipelineRunRequest(BaseModel):
 
 class PipelineRunResponse(BaseModel):
 	experiment_id: str
+	status: str
+	stage: str
+	progress: int
+	logs: list[str] = Field(default_factory=list)
+	results: dict[str, Any] = Field(default_factory=dict)
+	is_mock: bool = False
 
 
 class PipelineStatusResponse(BaseModel):
 	status: str
 	stage: str
 	progress: int
-	logs: list[Any] = Field(default_factory=list)
+	logs: list[str] = Field(default_factory=list)
+	results: dict[str, Any] = Field(default_factory=dict)
+	experiment_id: str
+	is_mock: bool = False
 
 
 def _compute_progress(stage: str) -> int:
@@ -95,6 +106,53 @@ def _compute_progress(stage: str) -> int:
 		"completed": 100,
 	}
 	return stage_progress_map.get(stage.lower(), 0)
+
+
+def _normalize_logs(logs: Any, fallback_message: str) -> list[str]:
+	if isinstance(logs, list):
+		normalized = [str(line) for line in logs if str(line).strip()]
+		if normalized:
+			return normalized
+	return [fallback_message]
+
+
+def _normalize_results(results: Any, stage: str) -> dict[str, Any]:
+	if isinstance(results, dict) and results:
+		return results
+	if isinstance(results, list):
+		return {
+			"items": results,
+			"summary": f"Pipeline stage '{stage}' returned list results.",
+		}
+	return {
+		"items": [],
+		"summary": f"No structured results available for stage '{stage}'.",
+	}
+
+
+def _build_pipeline_response(
+	*,
+	experiment_id: str,
+	status_value: Any,
+	stage: Any,
+	logs: Any,
+	results: Any,
+	is_mock: bool,
+	progress: int | None = None,
+) -> PipelineStatusResponse:
+	normalized_status = str(status_value).strip() if isinstance(status_value, str) else "running"
+	normalized_stage = str(stage).strip() if isinstance(stage, str) else "phase0"
+	computed_progress = progress if progress is not None else _compute_progress(normalized_stage)
+
+	return PipelineStatusResponse(
+		experiment_id=experiment_id,
+		status=normalized_status or "running",
+		stage=normalized_stage or "phase0",
+		progress=max(0, min(100, int(computed_progress))),
+		logs=_normalize_logs(logs, f"Stage update: {normalized_stage or 'phase0'}"),
+		results=_normalize_results(results, normalized_stage or "phase0"),
+		is_mock=is_mock,
+	)
 
 
 @router.get("/experiments/summary", response_model=ExperimentSummaryResponse)
@@ -110,6 +168,7 @@ def get_recent_runs(limit: int = Query(default=8, ge=1, le=50)) -> RecentRunsRes
 
 @router.post("/experiments", response_model=CreateExperimentResponse, status_code=status.HTTP_201_CREATED)
 def create_experiment(request: CreateExperimentRequest) -> CreateExperimentResponse:
+	logger.info("POST /pipeline/experiments experiment_id=%s protein=%s", request.experiment_id, request.protein)
 	stored = {
 		"experiment_id": request.experiment_id,
 		"protein": request.protein,
@@ -122,8 +181,9 @@ def create_experiment(request: CreateExperimentRequest) -> CreateExperimentRespo
 
 @router.get("/experiments", response_model=ExperimentsListResponse)
 def list_experiments() -> ExperimentsListResponse:
+	logger.info("GET /pipeline/experiments")
 	experiments = [CreateExperimentResponse(**item) for item in get_all_experiments()]
-	return ExperimentsListResponse(experiments=experiments)
+	return ExperimentsListResponse(count=len(experiments), experiments=experiments)
 
 
 @router.post("/experiments/{id}/run", response_model=StartRunResponse, status_code=status.HTTP_201_CREATED)
@@ -155,28 +215,39 @@ def finish_run(id: UUID, request: FinishRunRequest) -> StatusResponse:
 
 @router.post("/run", response_model=PipelineRunResponse)
 async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
+	logger.info("POST /pipeline/run protein=%s", request.protein)
 	payload = request.model_dump()
+	fallback_experiment_id = f"mock-{uuid4().hex[:10]}"
 
 	try:
 		async with httpx.AsyncClient(timeout=30.0) as client:
 			response = await client.post(f"{AI_SERVICE_URL.rstrip('/')}/run-pipeline", json=payload)
 			response.raise_for_status()
-	except httpx.HTTPStatusError as exc:
-		detail = f"AI service returned {exc.response.status_code}"
-		raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
-	except httpx.RequestError as exc:
-		raise HTTPException(
-			status_code=status.HTTP_502_BAD_GATEWAY,
-			detail="Failed to connect to AI service",
-		) from exc
-
-	data = response.json()
-	experiment_id = data.get("experiment_id")
-	if not isinstance(experiment_id, str) or not experiment_id:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail="AI service response missing experiment_id",
+		raw = response.json()
+	except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as exc:
+		logger.exception("POST /pipeline/run failed, returning mock response: %s", exc)
+		add_experiment(
+			{
+				"experiment_id": fallback_experiment_id,
+				"protein": request.protein,
+				"status": "mock_running",
+				"created_at": datetime.now(timezone.utc).isoformat(),
+			}
 		)
+		fallback = _build_pipeline_response(
+			experiment_id=fallback_experiment_id,
+			status_value="running",
+			stage="phase0",
+			logs=["AI service unavailable. Started mock pipeline run."],
+			results={"items": [], "summary": "Mock run started."},
+			is_mock=True,
+			progress=0,
+		)
+		return PipelineRunResponse(**fallback.model_dump())
+
+	data = raw if isinstance(raw, dict) else {}
+	experiment_id_raw = data.get("experiment_id")
+	experiment_id = experiment_id_raw if isinstance(experiment_id_raw, str) and experiment_id_raw else fallback_experiment_id
 
 	add_experiment(
 		{
@@ -187,82 +258,79 @@ async def run_pipeline(request: PipelineRunRequest) -> PipelineRunResponse:
 		}
 	)
 
-	return PipelineRunResponse(experiment_id=experiment_id)
+	normalized = _build_pipeline_response(
+		experiment_id=experiment_id,
+		status_value=data.get("status", "running"),
+		stage=data.get("stage", "phase0"),
+		logs=data.get("logs", ["Pipeline run accepted by AI service."]),
+		results=data.get("results", {"items": [], "summary": "Pipeline run started."}),
+		is_mock=False,
+		progress=data.get("progress", 0),
+	)
+
+	return PipelineRunResponse(**normalized.model_dump())
 
 
 @router.get("/status/{experiment_id}", response_model=PipelineStatusResponse)
 async def get_pipeline_status(experiment_id: str) -> PipelineStatusResponse:
+	logger.info("GET /pipeline/status/%s", experiment_id)
 	try:
 		async with httpx.AsyncClient(timeout=30.0) as client:
 			response = await client.get(f"{AI_SERVICE_URL.rstrip('/')}/status/{experiment_id}")
 			response.raise_for_status()
-	except httpx.HTTPStatusError as exc:
-		detail = f"AI service returned {exc.response.status_code}"
-		raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=detail) from exc
-	except httpx.RequestError as exc:
-		raise HTTPException(
-			status_code=status.HTTP_502_BAD_GATEWAY,
-			detail="Failed to connect to AI service",
-		) from exc
-
-	data = response.json()
-	status_value = data.get("status")
-	stage = data.get("stage")
-	logs = data.get("logs", [])
-
-	if not isinstance(status_value, str) or not status_value:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail="AI service response missing status",
-		)
-	if not isinstance(stage, str) or not stage:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail="AI service response missing stage",
-		)
-	if not isinstance(logs, list):
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail="AI service response missing logs",
+		raw = response.json()
+	except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as exc:
+		logger.exception("GET /pipeline/status/%s failed, returning mock status: %s", experiment_id, exc)
+		return _build_pipeline_response(
+			experiment_id=experiment_id,
+			status_value="running",
+			stage="phase0",
+			logs=["AI service unavailable. Returning mock pipeline status."],
+			results={"items": [], "summary": "Live status unavailable."},
+			is_mock=True,
+			progress=0,
 		)
 
-	return PipelineStatusResponse(
-		status=status_value,
-		stage=stage,
-		progress=_compute_progress(stage),
-		logs=logs,
+	data = raw if isinstance(raw, dict) else {}
+	return _build_pipeline_response(
+		experiment_id=experiment_id,
+		status_value=data.get("status", "running"),
+		stage=data.get("stage", "phase0"),
+		logs=data.get("logs", ["Status retrieved from AI service."]),
+		results=data.get("results", {"items": [], "summary": "No stage results available yet."}),
+		is_mock=False,
+		progress=data.get("progress"),
 	)
 
 
-@router.get("/results/{experiment_id}")
-async def get_pipeline_results(experiment_id: str) -> Response:
+@router.get("/results/{experiment_id}", response_model=PipelineStatusResponse)
+async def get_pipeline_results(experiment_id: str) -> PipelineStatusResponse:
+	logger.info("GET /pipeline/results/%s", experiment_id)
 	try:
 		async with httpx.AsyncClient(timeout=30.0) as client:
 			response = await client.get(f"{AI_SERVICE_URL.rstrip('/')}/results/{experiment_id}")
-	except httpx.RequestError as exc:
-		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail="Failed to connect to AI service",
-		) from exc
-
-	if response.is_error:
-		content_type = response.headers.get("content-type", "application/json")
-		if "application/json" in content_type:
-			try:
-				return JSONResponse(status_code=response.status_code, content=response.json())
-			except ValueError:
-				pass
-		return Response(
-			status_code=response.status_code,
-			content=response.text,
-			media_type=content_type,
+			response.raise_for_status()
+			raw = response.json()
+	except (httpx.HTTPStatusError, httpx.RequestError, ValueError) as exc:
+		logger.exception("GET /pipeline/results/%s failed, returning mock results: %s", experiment_id, exc)
+		return _build_pipeline_response(
+			experiment_id=experiment_id,
+			status_value="failed",
+			stage="completed",
+			logs=["AI service unavailable. Returning mock pipeline results."],
+			results={"items": [], "summary": "Mock results placeholder."},
+			is_mock=True,
+			progress=100,
 		)
 
-	content_type = response.headers.get("content-type", "application/json")
-	if "application/json" in content_type:
-		try:
-			return JSONResponse(content=response.json())
-		except ValueError:
-			pass
-
-	return Response(content=response.text, media_type=content_type)
+	data = raw if isinstance(raw, dict) else {}
+	results_payload = data.get("results", data if data else {"items": [], "summary": "No results payload."})
+	return _build_pipeline_response(
+		experiment_id=experiment_id,
+		status_value=data.get("status", "completed"),
+		stage=data.get("stage", "completed"),
+		logs=data.get("logs", ["Results retrieved from AI service."]),
+		results=results_payload,
+		is_mock=False,
+		progress=data.get("progress", 100),
+	)

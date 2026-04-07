@@ -51,7 +51,10 @@ export function QuantumResultsSection({
   const sortedCandidates = [...items]
     .filter((candidate) => matchesSearch(candidate, searchQuery))
     .filter((candidate) => {
-      const compositeScore = candidate.homo_lumo_gap * 0.4 + candidate.qsvm_score * 3 + candidate.stability_score * 3;
+      const compositeScore =
+        Number(candidate.homo_lumo_gap || 0) * 0.4 +
+        Number(candidate.qsvm_score || 0) * 3 +
+        Number(candidate.stability_score || 0) * 3;
       const scoreMatch =
         scoreBand === "all"
           ? true
@@ -73,8 +76,14 @@ export function QuantumResultsSection({
       return scoreMatch && stabilityMatch;
     })
     .sort((a, b) => {
-      const aScore = a.homo_lumo_gap * 0.4 + a.qsvm_score * 3 + a.stability_score * 3;
-      const bScore = b.homo_lumo_gap * 0.4 + b.qsvm_score * 3 + b.stability_score * 3;
+      const aScore =
+        Number(a.homo_lumo_gap || 0) * 0.4 +
+        Number(a.qsvm_score || 0) * 3 +
+        Number(a.stability_score || 0) * 3;
+      const bScore =
+        Number(b.homo_lumo_gap || 0) * 0.4 +
+        Number(b.qsvm_score || 0) * 3 +
+        Number(b.stability_score || 0) * 3;
       return bScore - aScore;
     });
 
@@ -100,11 +109,12 @@ export function QuantumResultsSection({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-100">Quantum Results</h2>
-          <p className="mt-1 text-xs text-slate-400">
-            Table view for electronic energy levels and stability classifications.
-          </p>
+          <p className="mt-1 text-xs text-slate-400">Electronic energy levels, HOMO-LUMO gap, and QSVM stability classification.</p>
         </div>
         <div className="flex items-center gap-3">
+          <span className="inline-flex w-fit items-center rounded-full border border-cyan-300/40 bg-cyan-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-100">
+            Demo Data (Precomputed)
+          </span>
           <p className="text-xs text-slate-400">Export current filtered table</p>
           <CsvDownloadButton
             filename="quantum-results.csv"

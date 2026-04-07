@@ -5,9 +5,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui";
 import { useWorkspaceStore } from "@/store";
 import {
   NumberSliderField,
-  ProteinSequenceField,
   SelectField,
 } from "@/components/workspace/WorkspaceInputFields";
+
+const proteinOptions = [
+  { label: "EGFR", value: "EGFR" },
+  { label: "HER2", value: "HER2" },
+] as const;
 
 const toxicityOptions = [
   { label: "Low", value: "Low" },
@@ -15,11 +19,15 @@ const toxicityOptions = [
   { label: "High", value: "High" },
 ] as const;
 
+const proteinOptionValues = new Set(proteinOptions.map((option) => option.value));
+
 export default function WorkspaceInputPanel() {
   const workspaceInput = useWorkspaceStore((s) => s.workspaceInput);
   const setWorkspaceInput = useWorkspaceStore((s) => s.setWorkspaceInput);
 
-  const [proteinSequence, setProteinSequence] = useState(workspaceInput.protein);
+  const [selectedProtein, setSelectedProtein] = useState(
+    proteinOptionValues.has(workspaceInput.protein) ? workspaceInput.protein : "EGFR"
+  );
   const [logP, setLogP] = useState(Number(workspaceInput.constraints.logP ?? 2.4));
   const [qed, setQed] = useState(Number(workspaceInput.constraints.qed ?? 0.78));
   const [toxicity, setToxicity] = useState(String(workspaceInput.constraints.toxicity ?? "Low"));
@@ -47,7 +55,7 @@ export default function WorkspaceInputPanel() {
       };
 
       if (parsed.protein) {
-        setProteinSequence(parsed.protein);
+        setSelectedProtein(proteinOptionValues.has(parsed.protein) ? parsed.protein : "EGFR");
       }
 
       if (parsed.constraints) {
@@ -63,7 +71,7 @@ export default function WorkspaceInputPanel() {
       }
 
       setWorkspaceInput({
-        protein: parsed.protein ?? proteinSequence,
+        protein: proteinOptionValues.has(parsed.protein ?? "") ? (parsed.protein as string) : selectedProtein,
         constraints: {
           logP: typeof parsed.constraints?.logP === "number" ? parsed.constraints.logP : logP,
           qed: typeof parsed.constraints?.qed === "number" ? parsed.constraints.qed : qed,
@@ -78,18 +86,18 @@ export default function WorkspaceInputPanel() {
     } finally {
       window.sessionStorage.removeItem("qdrugforge.workspace.rerunInput");
     }
-  }, [logP, proteinSequence, qed, setWorkspaceInput, toxicity]);
+  }, [logP, qed, selectedProtein, setWorkspaceInput, toxicity]);
 
   useEffect(() => {
     setWorkspaceInput({
-      protein: proteinSequence,
+      protein: selectedProtein,
       constraints: {
         logP,
         qed,
         toxicity,
       },
     });
-  }, [logP, proteinSequence, qed, setWorkspaceInput, toxicity]);
+  }, [logP, qed, selectedProtein, setWorkspaceInput, toxicity]);
 
   return (
     <Card className="shadow-xl shadow-slate-950/40 transition-all duration-300" style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}>
@@ -102,14 +110,14 @@ export default function WorkspaceInputPanel() {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <ProteinSequenceField
-          id="workspace-protein-sequence"
-          label="Protein Sequence"
-          value={proteinSequence}
-          onChange={setProteinSequence}
+        <SelectField
+          id="workspace-protein-target"
+          label="Protein Target"
+          value={selectedProtein}
+          onChange={setSelectedProtein}
           disabled={isPipelineRunning}
-          helperText="Paste FASTA sequence text for the target protein."
-          placeholder="MENFQKVEKIGEGTYGVVYKARNKLTGE..."
+          options={[...proteinOptions]}
+          helperText="Select target protein identifier sent to the backend pipeline."
         />
 
         <Card className="transition-all duration-300" style={{ backgroundColor: "var(--muted-bg)", borderColor: "var(--border)" }}>
