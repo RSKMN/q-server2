@@ -399,45 +399,47 @@ export default function WorkspaceOutputPanel() {
           ? pipelineResults.docking
           : [];
 
-    return fallbackRows
-      .map((item, index) => {
-        if (typeof item !== "object" || item === null) {
-          return null;
-        }
-        const row = item as Record<string, unknown>;
-        const moleculeId = row.molecule_id ?? row.id ?? `molecule-${index + 1}`;
-        const scoreValue =
-          row.score ??
-          row.qed ??
-          row.qsvm_score ??
-          row.stability_score ??
-          row.binding_affinity;
-        const score = typeof scoreValue === "number" ? scoreValue : Number(scoreValue ?? NaN);
-        const molecularWeightValue = row.molecular_weight ?? row.mw ?? row.MW;
-        const logpValue = row.logp ?? row.log_p ?? row.LogP;
-        const tpsaValue = row.tpsa ?? row.TPSA;
-        const affinityValue = row.pred_affinity ?? row.binding_affinity ?? row.affinity;
+    const mapped: GeneratedMolecule[] = [];
 
-        const molecularWeight =
-          typeof molecularWeightValue === "number"
-            ? molecularWeightValue
-            : Number(molecularWeightValue ?? NaN);
-        const logp = typeof logpValue === "number" ? logpValue : Number(logpValue ?? NaN);
-        const tpsa = typeof tpsaValue === "number" ? tpsaValue : Number(tpsaValue ?? NaN);
-        const predAffinity =
-          typeof affinityValue === "number" ? affinityValue : Number(affinityValue ?? NaN);
+    fallbackRows.forEach((item, index) => {
+      if (typeof item !== "object" || item === null) {
+        return;
+      }
 
-        return {
-          molecule_id: String(moleculeId),
-          score: Number.isFinite(score) ? score : 0,
-          molecular_weight: Number.isFinite(molecularWeight) ? molecularWeight : undefined,
-          logp: Number.isFinite(logp) ? logp : undefined,
-          tpsa: Number.isFinite(tpsa) ? tpsa : undefined,
-          pred_affinity: Number.isFinite(predAffinity) ? predAffinity : undefined,
-        };
-      })
-      .filter((item): item is GeneratedMolecule => item !== null)
-      .sort((a, b) => b.score - a.score);
+      const row = item as Record<string, unknown>;
+      const moleculeId = row.molecule_id ?? row.id ?? `molecule-${index + 1}`;
+      const scoreValue =
+        row.score ??
+        row.qed ??
+        row.qsvm_score ??
+        row.stability_score ??
+        row.binding_affinity;
+      const score = typeof scoreValue === "number" ? scoreValue : Number(scoreValue ?? NaN);
+      const molecularWeightValue = row.molecular_weight ?? row.mw ?? row.MW;
+      const logpValue = row.logp ?? row.log_p ?? row.LogP;
+      const tpsaValue = row.tpsa ?? row.TPSA;
+      const affinityValue = row.pred_affinity ?? row.binding_affinity ?? row.affinity;
+
+      const molecularWeight =
+        typeof molecularWeightValue === "number"
+          ? molecularWeightValue
+          : Number(molecularWeightValue ?? NaN);
+      const logp = typeof logpValue === "number" ? logpValue : Number(logpValue ?? NaN);
+      const tpsa = typeof tpsaValue === "number" ? tpsaValue : Number(tpsaValue ?? NaN);
+      const predAffinity =
+        typeof affinityValue === "number" ? affinityValue : Number(affinityValue ?? NaN);
+
+      mapped.push({
+        molecule_id: String(moleculeId),
+        score: Number.isFinite(score) ? score : 0,
+        molecular_weight: Number.isFinite(molecularWeight) ? molecularWeight : undefined,
+        logp: Number.isFinite(logp) ? logp : undefined,
+        tpsa: Number.isFinite(tpsa) ? tpsa : undefined,
+        pred_affinity: Number.isFinite(predAffinity) ? predAffinity : undefined,
+      });
+    });
+
+    return mapped.sort((a, b) => b.score - a.score);
   }, [pipelineResults.docking, pipelineResults.filtered, pipelineResults.generated]);
 
   const bestCandidate = generatedCandidates[0] ?? null;
