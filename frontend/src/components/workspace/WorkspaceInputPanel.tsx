@@ -19,14 +19,23 @@ const toxicityOptions = [
   { label: "High", value: "High" },
 ] as const;
 
-const proteinOptionValues = new Set(proteinOptions.map((option) => option.value));
+type ProteinOptionValue = (typeof proteinOptions)[number]["value"];
+type ToxicityOptionValue = (typeof toxicityOptions)[number]["value"];
+
+function isProteinOptionValue(value: string): value is ProteinOptionValue {
+  return proteinOptions.some((option) => option.value === value);
+}
+
+function isToxicityOptionValue(value: string): value is ToxicityOptionValue {
+  return toxicityOptions.some((option) => option.value === value);
+}
 
 export default function WorkspaceInputPanel() {
   const workspaceInput = useWorkspaceStore((s) => s.workspaceInput);
   const setWorkspaceInput = useWorkspaceStore((s) => s.setWorkspaceInput);
 
   const [selectedProtein, setSelectedProtein] = useState(
-    proteinOptionValues.has(workspaceInput.protein) ? workspaceInput.protein : "EGFR"
+    isProteinOptionValue(workspaceInput.protein) ? workspaceInput.protein : "EGFR"
   );
   const [logP, setLogP] = useState(Number(workspaceInput.constraints.logP ?? 2.4));
   const [qed, setQed] = useState(Number(workspaceInput.constraints.qed ?? 0.78));
@@ -55,7 +64,7 @@ export default function WorkspaceInputPanel() {
       };
 
       if (parsed.protein) {
-        setSelectedProtein(proteinOptionValues.has(parsed.protein) ? parsed.protein : "EGFR");
+        setSelectedProtein(isProteinOptionValue(parsed.protein) ? parsed.protein : "EGFR");
       }
 
       if (parsed.constraints) {
@@ -65,18 +74,25 @@ export default function WorkspaceInputPanel() {
         if (typeof parsed.constraints.qed === "number") {
           setQed(parsed.constraints.qed);
         }
-        if (typeof parsed.constraints.toxicity === "string") {
+        if (
+          typeof parsed.constraints.toxicity === "string" &&
+          isToxicityOptionValue(parsed.constraints.toxicity)
+        ) {
           setToxicity(parsed.constraints.toxicity);
         }
       }
 
       setWorkspaceInput({
-        protein: proteinOptionValues.has(parsed.protein ?? "") ? (parsed.protein as string) : selectedProtein,
+        protein:
+          typeof parsed.protein === "string" && isProteinOptionValue(parsed.protein)
+            ? parsed.protein
+            : selectedProtein,
         constraints: {
           logP: typeof parsed.constraints?.logP === "number" ? parsed.constraints.logP : logP,
           qed: typeof parsed.constraints?.qed === "number" ? parsed.constraints.qed : qed,
           toxicity:
-            typeof parsed.constraints?.toxicity === "string"
+            typeof parsed.constraints?.toxicity === "string" &&
+            isToxicityOptionValue(parsed.constraints.toxicity)
               ? parsed.constraints.toxicity
               : toxicity,
         },
@@ -114,7 +130,9 @@ export default function WorkspaceInputPanel() {
           id="workspace-protein-target"
           label="Protein Target"
           value={selectedProtein}
-          onChange={setSelectedProtein}
+          onChange={(nextValue) =>
+            setSelectedProtein(isProteinOptionValue(nextValue) ? nextValue : "EGFR")
+          }
           disabled={isPipelineRunning}
           options={[...proteinOptions]}
           helperText="Select target protein identifier sent to the backend pipeline."
@@ -154,7 +172,9 @@ export default function WorkspaceInputPanel() {
               id="workspace-toxicity"
               label="Toxicity"
               value={toxicity}
-              onChange={setToxicity}
+              onChange={(nextValue) =>
+                setToxicity(isToxicityOptionValue(nextValue) ? nextValue : "Low")
+              }
               disabled={isPipelineRunning}
               options={[...toxicityOptions]}
               helperText="Low is strictest; High allows broader exploration."

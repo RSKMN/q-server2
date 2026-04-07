@@ -356,6 +356,7 @@ export default function WorkspaceOutputPanel() {
       window.clearInterval(intervalId);
     };
   }, [
+    appendLog,
     lastAction,
     lastExperimentId,
     pipelineState,

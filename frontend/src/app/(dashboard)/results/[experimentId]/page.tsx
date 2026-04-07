@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
@@ -335,7 +335,7 @@ export default function ExperimentResultPage({ params }: ExperimentResultPagePro
   const [error, setError] = useState<string | null>(null);
   const [pipelineStatus, setPipelineStatus] = useState<WorkspacePipelineStatusResponse | null>(null);
 
-  const storeResultData = (rawData: unknown) => {
+  const storeResultData = useCallback((rawData: unknown) => {
     const payloadRecord = asRecord(rawData);
     let mapped = mapPipelineResponse(payloadRecord);
     const hasRealRows =
@@ -370,7 +370,7 @@ export default function ExperimentResultPage({ params }: ExperimentResultPagePro
     setQuantumResults(mapped.quantumResults);
     setArtifacts(mapped.artifacts);
     setOverview(extractOverview(payloadRecord, mapped));
-  };
+  }, [experimentId]);
 
   useEffect(() => {
     if (!experimentId) {
@@ -445,7 +445,7 @@ export default function ExperimentResultPage({ params }: ExperimentResultPagePro
         window.clearInterval(intervalId);
       }
     };
-  }, [experimentId]);
+  }, [experimentId, storeResultData]);
 
   const metricItems = useMemo(() => {
     if (!overview) return [] as Array<{ label: string; value: string | number }>;

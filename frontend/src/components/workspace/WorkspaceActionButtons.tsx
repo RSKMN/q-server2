@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { Button, Card, CardContent, CardHeader } from "@/components/ui";
-import { ApiError, runDocking, runPipeline } from "@/services";
+import { ApiError, runDocking, runPipeline, type WorkspaceToxicityLevel } from "@/services";
 import { useWorkspaceStore } from "@/store";
 import type { IntermediateResultItem } from "@/store/workspaceStore";
 
@@ -93,9 +93,14 @@ export default function WorkspaceActionButtons() {
     return `${hh}:${mm}:${ss} | ${message}`;
   };
 
-  const normalizeToxicity = (value: string | number | boolean | undefined): string => {
+  const normalizeToxicity = (
+    value: string | number | boolean | undefined
+  ): WorkspaceToxicityLevel => {
     if (typeof value === "string") {
-      return value;
+      if (value === "Low" || value === "Medium" || value === "High") {
+        return value;
+      }
+      return "Low";
     }
     if (typeof value === "boolean") {
       return value ? "High" : "Low";
