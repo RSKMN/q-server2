@@ -157,9 +157,10 @@ export default function WorkspaceOutputPanel() {
   const setPipelineResults = useWorkspaceStore((s) => s.setPipelineResults);
   const appendLog = useWorkspaceStore((s) => s.appendLog);
   const updateIntermediateResult = useWorkspaceStore((s) => s.updateIntermediateResult);
+  const isPipelineAction = lastAction === "pipeline" || lastAction === "generate";
 
   const retryStatusPolling = () => {
-    if (!lastExperimentId || (lastAction !== "pipeline" && pipelineState !== "running_full_pipeline")) {
+    if (!lastExperimentId || (!isPipelineAction && pipelineState !== "running_full_pipeline")) {
       return;
     }
     setPipelineExecution({
@@ -176,7 +177,7 @@ export default function WorkspaceOutputPanel() {
   const lastRemoteLogCountRef = useRef(0);
 
   const status = STATUS_META[pipelineState];
-  const isPipelineRun = lastAction === "pipeline" || pipelineState === "running_full_pipeline";
+  const isPipelineRun = isPipelineAction || pipelineState === "running_full_pipeline";
   const displayedLogs = isPipelineRun ? pipelineExecution.logs : pipelineLogs;
   const isRunning =
     pipelineState === "generating" ||
@@ -361,6 +362,8 @@ export default function WorkspaceOutputPanel() {
     };
   }, [
     appendLog,
+    isPipelineAction,
+    isPipelineRun,
     lastAction,
     lastExperimentId,
     pipelineState,
