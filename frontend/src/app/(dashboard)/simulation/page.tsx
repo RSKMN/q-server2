@@ -49,7 +49,11 @@ function extractSimulationRows(payload: Record<string, unknown> | null): Simulat
     ? simulationNode?.rmsd
     : Array.isArray(nested?.simulation_results)
       ? nested?.simulation_results
-      : [];
+      : Array.isArray(nested?.items)
+        ? nested?.items
+        : Array.isArray(payload.items)
+          ? payload.items
+          : [];
 
   return rawRows
     .map((item, index) => {

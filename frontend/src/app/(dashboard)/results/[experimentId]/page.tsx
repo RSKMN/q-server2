@@ -273,10 +273,14 @@ function extractSimulationVideoUrl(payload: ResultPayload | null): string | null
 }
 
 function mapPipelineResponse(payload: ResultPayload | null): PipelineSections {
+  const generatedRows = extractSection(payload, ["generated", "generated_molecules", "molecules"]);
+  const filteredRows = extractSection(payload, ["filtered", "filtered_candidates", "ranked", "candidates"]);
+  const genericRows = extractSection(payload, ["items", "rows", "data"]);
+
   const generated = normalizeGeneratedMolecules(
-    extractSection(payload, ["generated", "generated_molecules", "molecules"])
+    generatedRows.length > 0 ? generatedRows : genericRows
   );
-  const filtered = extractSection(payload, ["filtered", "filtered_candidates", "ranked", "candidates"]).map(
+  const filtered = (filteredRows.length > 0 ? filteredRows : genericRows).map(
     (row) => toTextRow(asRecord(row) ?? {})
   );
   const docking = normalizeDockingResults(extractSection(payload, ["docking", "docking_results", "docking_scores"]));

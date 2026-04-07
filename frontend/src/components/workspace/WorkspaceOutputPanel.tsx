@@ -118,21 +118,25 @@ function normalizePipelineResults(payload: unknown): {
       ? (source.results as Record<string, unknown>)
       : null;
 
-  const generated = Array.isArray(source.generated)
-    ? source.generated
-    : nested && Array.isArray(nested.generated)
-      ? nested.generated
-      : [];
-  const filtered = Array.isArray(source.filtered)
-    ? source.filtered
-    : nested && Array.isArray(nested.filtered)
-      ? nested.filtered
-      : [];
-  const docking = Array.isArray(source.docking)
-    ? source.docking
-    : nested && Array.isArray(nested.docking)
-      ? nested.docking
-      : [];
+  const pickArray = (keys: string[]): unknown[] => {
+    for (const key of keys) {
+      const topLevel = source[key];
+      if (Array.isArray(topLevel)) {
+        return topLevel;
+      }
+      if (nested) {
+        const nestedValue = nested[key];
+        if (Array.isArray(nestedValue)) {
+          return nestedValue;
+        }
+      }
+    }
+    return [];
+  };
+
+  const generated = pickArray(["generated", "generated_molecules", "molecules", "items", "rows", "data"]);
+  const filtered = pickArray(["filtered", "filtered_candidates", "ranked", "candidates"]);
+  const docking = pickArray(["docking", "docking_results", "docking_scores"]);
 
   return { generated, filtered, docking };
 }

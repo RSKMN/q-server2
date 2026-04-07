@@ -76,8 +76,14 @@ function normalizeMoleculeRows(payload: Record<string, unknown> | null): Visuali
   const filtered = extractSection(payload, ["filtered", "filtered_candidates"])
     .map((row) => ({ row: asRecord(row), source: "filtered" }))
     .filter((item) => item.row !== null);
+  const generic =
+    generated.length === 0 && filtered.length === 0
+      ? extractSection(payload, ["items", "rows", "data"])
+          .map((row) => ({ row: asRecord(row), source: "generated" }))
+          .filter((item) => item.row !== null)
+      : [];
 
-  const combined = [...generated, ...filtered];
+  const combined = [...generated, ...filtered, ...generic];
   const seen = new Set<string>();
   const normalized: VisualizationMoleculeStructure[] = [];
 
@@ -136,7 +142,7 @@ function normalizeSimulationRows(payload: Record<string, unknown> | null): Simul
   const simulationNode = asRecord(nested?.simulation) ?? asRecord(payload?.simulation);
   const primaryRmsdRows = Array.isArray(simulationNode?.rmsd) ? simulationNode.rmsd : null;
   const simulationRows =
-    primaryRmsdRows ?? extractSection(payload, ["simulation", "simulation_results", "rmsd", "rmsd_results"]);
+    primaryRmsdRows ?? extractSection(payload, ["simulation", "simulation_results", "rmsd", "rmsd_results", "items", "rows", "data"]);
 
   return simulationRows
     .map((item, index) => {
