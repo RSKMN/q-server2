@@ -164,8 +164,8 @@ export default function ResultsPage() {
                 return {
                   molecule_id: String(row.molecule_id ?? row.candidate_id ?? row.id ?? `candidate-${index + 1}`),
                   smiles: String(row.smiles ?? row.canonical_smiles ?? row.structure ?? ""),
-                  molecular_weight: toNumber(row.molecular_weight ?? row.mw),
-                  logp: toNumber(row.logp ?? row.log_p),
+                  molecular_weight: toNumber(row.molecular_weight ?? row.mw ?? row.MW),
+                  logp: toNumber(row.logp ?? row.log_p ?? row.LogP),
                   qed: toNumber(row.qed ?? row.qed_score ?? row.score ?? row.qsvm_score),
                 };
               });
@@ -187,7 +187,7 @@ export default function ResultsPage() {
                 const row = asRecord(item) ?? {};
                 return {
                   molecule_id: String(row.molecule_id ?? row.candidate_id ?? row.id ?? `dock-${index + 1}`),
-                  binding_affinity: toNumber(row.binding_affinity ?? row.affinity ?? row.score),
+                  binding_affinity: toNumber(row.binding_affinity ?? row.affinity ?? row.pred_affinity ?? row.score),
                   h_bonds: toNumber(row.h_bonds ?? row.hbonds ?? row.hydrogen_bonds),
                   target_protein: String(row.target_protein ?? row.target ?? row.protein ?? "Unknown target"),
                 };

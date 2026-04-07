@@ -170,9 +170,9 @@ function normalizeGeneratedMolecules(items: unknown[]): GeneratedMoleculeResult[
     return {
       molecule_id: String(findValue(row, ["molecule_id", "id", "candidate_id"]) ?? `generated-${index + 1}`),
       smiles: String(findValue(row, ["smiles", "canonical_smiles", "structure"]) ?? ""),
-      molecular_weight: toNumber(findValue(row, ["molecular_weight", "mw"])),
-      logp: toNumber(findValue(row, ["logp", "log_p"])),
-      qed: toNumber(findValue(row, ["qed", "qed_score"])),
+      molecular_weight: toNumber(findValue(row, ["molecular_weight", "mw", "MW"])),
+      logp: toNumber(findValue(row, ["logp", "log_p", "LogP"])),
+      qed: toNumber(findValue(row, ["qed", "qed_score", "score", "optimization_score"])),
     };
   });
 }
@@ -182,7 +182,7 @@ function normalizeDockingResults(items: unknown[]): DockingResult[] {
     const row = asRecord(item) ?? {};
     return {
       molecule_id: String(findValue(row, ["molecule_id", "id", "candidate_id"]) ?? `docking-${index + 1}`),
-      binding_affinity: toNumber(findValue(row, ["binding_affinity", "affinity", "score"])),
+      binding_affinity: toNumber(findValue(row, ["binding_affinity", "affinity", "pred_affinity", "score"])),
       h_bonds: toNumber(findValue(row, ["h_bonds", "hbonds", "hydrogen_bonds"])),
       target_protein: String(findValue(row, ["target_protein", "target", "protein"]) ?? "Unknown target"),
     };

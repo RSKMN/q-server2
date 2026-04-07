@@ -142,9 +142,43 @@ def _normalize_logs(logs: Any, fallback_message: str) -> list[str]:
 	return [fallback_message]
 
 
+def _normalize_generated_row(row: dict[str, Any]) -> dict[str, Any]:
+	normalized = dict(row)
+
+	if not normalized.get("molecule_id") and normalized.get("candidate_id"):
+		normalized["molecule_id"] = normalized.get("candidate_id")
+	if not normalized.get("candidate_id") and normalized.get("molecule_id"):
+		normalized["candidate_id"] = normalized.get("molecule_id")
+
+	if normalized.get("molecular_weight") is None:
+		normalized["molecular_weight"] = normalized.get("MW", normalized.get("mw"))
+	if normalized.get("mw") is None:
+		normalized["mw"] = normalized.get("molecular_weight", normalized.get("MW"))
+
+	if normalized.get("logp") is None:
+		normalized["logp"] = normalized.get("LogP", normalized.get("log_p"))
+
+	if normalized.get("qed") is None:
+		normalized["qed"] = normalized.get("score", normalized.get("optimization_score"))
+
+	return normalized
+
+
+def _canonicalize_results(results: dict[str, Any]) -> dict[str, Any]:
+	normalized = dict(results)
+
+	generated = normalized.get("generated")
+	if isinstance(generated, list):
+		normalized["generated"] = [
+			_normalize_generated_row(item) if isinstance(item, dict) else item for item in generated
+		]
+
+	return normalized
+
+
 def _normalize_results(results: Any, stage: str) -> dict[str, Any]:
 	if isinstance(results, dict) and results:
-		return results
+		return _canonicalize_results(results)
 	if isinstance(results, list):
 		return {
 			"items": results,

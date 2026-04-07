@@ -74,6 +74,10 @@ const STATUS_META: Record<
 interface GeneratedMolecule {
   molecule_id: string;
   score: number;
+  molecular_weight?: number;
+  logp?: number;
+  tpsa?: number;
+  pred_affinity?: number;
 }
 
 function timestamped(message: string) {
@@ -409,9 +413,27 @@ export default function WorkspaceOutputPanel() {
           row.stability_score ??
           row.binding_affinity;
         const score = typeof scoreValue === "number" ? scoreValue : Number(scoreValue ?? NaN);
+        const molecularWeightValue = row.molecular_weight ?? row.mw ?? row.MW;
+        const logpValue = row.logp ?? row.log_p ?? row.LogP;
+        const tpsaValue = row.tpsa ?? row.TPSA;
+        const affinityValue = row.pred_affinity ?? row.binding_affinity ?? row.affinity;
+
+        const molecularWeight =
+          typeof molecularWeightValue === "number"
+            ? molecularWeightValue
+            : Number(molecularWeightValue ?? NaN);
+        const logp = typeof logpValue === "number" ? logpValue : Number(logpValue ?? NaN);
+        const tpsa = typeof tpsaValue === "number" ? tpsaValue : Number(tpsaValue ?? NaN);
+        const predAffinity =
+          typeof affinityValue === "number" ? affinityValue : Number(affinityValue ?? NaN);
+
         return {
           molecule_id: String(moleculeId),
           score: Number.isFinite(score) ? score : 0,
+          molecular_weight: Number.isFinite(molecularWeight) ? molecularWeight : undefined,
+          logp: Number.isFinite(logp) ? logp : undefined,
+          tpsa: Number.isFinite(tpsa) ? tpsa : undefined,
+          pred_affinity: Number.isFinite(predAffinity) ? predAffinity : undefined,
         };
       })
       .filter((item): item is GeneratedMolecule => item !== null)
@@ -615,6 +637,15 @@ export default function WorkspaceOutputPanel() {
                 <div className="mt-3 text-xs">
                   <p className="text-[10px] uppercase tracking-wide" style={{ color: "var(--muted-text)" }}>Score</p>
                   <p className="mt-0.5" style={{ color: "var(--text)" }}>{candidate.score.toFixed(4)}</p>
+                  {typeof candidate.molecular_weight === "number" ? (
+                    <p className="mt-1" style={{ color: "var(--muted-text)" }}>MW: {candidate.molecular_weight.toFixed(2)}</p>
+                  ) : null}
+                  {typeof candidate.logp === "number" ? (
+                    <p style={{ color: "var(--muted-text)" }}>LogP: {candidate.logp.toFixed(2)}</p>
+                  ) : null}
+                  {typeof candidate.pred_affinity === "number" ? (
+                    <p style={{ color: "var(--muted-text)" }}>Affinity: {candidate.pred_affinity.toFixed(3)}</p>
+                  ) : null}
                 </div>
               </article>
             ))}
