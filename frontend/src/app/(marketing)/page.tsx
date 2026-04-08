@@ -9,14 +9,15 @@ import { WorkflowSection } from "../../components/marketing/WorkflowSection";
 
 export default function MarketingHomePage() {
   return (
-    <main className="relative overflow-hidden bg-background text-text">
+    <main className="aurora-bg relative overflow-hidden bg-background text-text">
+      <div className="bg-grid-noise pointer-events-none absolute inset-0 opacity-80" />
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[-12rem] h-[30rem] w-[30rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute bottom-[-10rem] right-[-8rem] h-[24rem] w-[24rem] rounded-full bg-accent/12 blur-3xl" />
-        <div className="absolute left-[-8rem] top-[28rem] h-[22rem] w-[22rem] rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute left-1/2 top-[-16rem] h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute right-[-10rem] top-[18rem] h-[28rem] w-[28rem] rounded-full bg-accent/14 blur-3xl" />
+        <div className="absolute bottom-[-12rem] left-[-10rem] h-[26rem] w-[26rem] rounded-full bg-primary/14 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl space-y-18 px-6 py-14 md:space-y-24 md:px-10 md:py-18 lg:px-14 lg:space-y-28 lg:py-20">
+      <div className="relative mx-auto max-w-7xl space-y-12 px-5 py-12 md:space-y-16 md:px-8 md:py-16 lg:space-y-20 lg:px-12 lg:py-20">
         <FadeInOnScroll delayMs={0}>
           <HeroSection />
         </FadeInOnScroll>

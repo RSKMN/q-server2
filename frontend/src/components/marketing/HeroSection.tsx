@@ -1,40 +1,83 @@
 export function HeroSection() {
   return (
-    <section className="relative isolate overflow-hidden rounded-3xl border border-border/70 bg-surface/55 px-6 py-18 shadow-2xl shadow-black/25 md:px-12 md:py-28">
-      <div className="pointer-events-none absolute inset-0 -z-20 rounded-3xl bg-gradient-to-br from-primary/30 via-accent/10 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 -z-20 rounded-3xl bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.24),transparent_42%),radial-gradient(circle_at_80%_25%,rgba(99,102,241,0.22),transparent_38%)]" />
-      <div className="pointer-events-none absolute left-1/2 top-1/3 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/30 blur-3xl md:h-[26rem] md:w-[26rem]" />
-      <div className="pointer-events-none absolute right-[-4rem] top-[-3rem] -z-10 h-56 w-56 rounded-full bg-accent/25 blur-3xl" />
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 rounded-3xl opacity-35"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(126,140,184,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(126,140,184,0.14) 1px, transparent 1px)",
-          backgroundSize: "34px 34px",
-        }}
-      />
+    <section className="glass-card relative isolate overflow-hidden rounded-3xl px-6 py-12 md:px-10 md:py-16 lg:px-12 lg:py-20">
+      <div className="pointer-events-none absolute -left-20 top-[-6rem] h-60 w-60 rounded-full bg-primary/25 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 bottom-[-4rem] h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
 
-      <div className="mx-auto max-w-4xl text-center">
-        <h1 className="bg-gradient-to-r from-accent via-text to-primary bg-clip-text font-heading text-4xl font-bold leading-[1.05] tracking-tight text-transparent md:text-6xl lg:text-7xl">
-          Quinfosys<span style={{ verticalAlign: "super", fontSize: "0.65em", lineHeight: 0 }}>™</span> QuDrugForge
-        </h1>
+      <div className="grid items-center gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:gap-12">
+        <div>
+          <p className="inline-flex items-center rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-accent">
+            Investor-ready AI platform
+          </p>
 
-        <p className="mt-6 font-heading text-xl font-semibold tracking-wide text-text-muted md:text-2xl">
-          Quantum AI for Drug Discovery
-        </p>
+          <h1 className="mt-6 bg-[linear-gradient(110deg,#9be7ff_0%,#7dd3fc_28%,#d3ccff_58%,#8ea2ff_100%)] bg-clip-text font-heading text-4xl font-bold leading-[1.02] tracking-tight text-transparent sm:text-5xl lg:text-6xl xl:text-7xl">
+            Quinfosys<span style={{ verticalAlign: "super", fontSize: "0.65em", lineHeight: 0 }}>™</span> QuDrugForge
+          </h1>
 
-        <p className="mx-auto mt-7 max-w-2xl font-body text-base leading-8 text-text-muted md:text-lg">
-          Accelerate lead identification with an AI-driven pipeline for molecular
-          screening, similarity search, and experiment intelligence.
-        </p>
+          <p className="mt-5 max-w-xl text-lg font-semibold text-text/95 md:text-xl">
+            Quantum AI for Drug Discovery
+          </p>
 
-        <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <button className="w-full rounded-xl bg-primary px-7 py-3 font-body text-sm font-semibold text-primary-foreground transition duration-300 hover:-translate-y-0.5 hover:bg-primary-hover hover:shadow-lg hover:shadow-primary/25 sm:w-auto">
-            Get Started
-          </button>
-          <button className="w-full rounded-xl border border-border-strong bg-background-muted/70 px-7 py-3 font-body text-sm font-semibold text-text transition duration-300 hover:-translate-y-0.5 hover:border-accent/80 hover:text-accent hover:shadow-lg hover:shadow-accent/10 sm:w-auto">
-            View Demo
-          </button>
+          <p className="mt-5 max-w-2xl font-body text-base leading-8 text-text-muted md:text-lg">
+            Move from molecular ideation to validated candidates with a unified platform for generation,
+            screening, docking, simulation, and quantum-informed decision support.
+          </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button className="btn-primary-glow w-full rounded-xl px-7 py-3 text-sm font-semibold sm:w-auto">
+              Start Building
+            </button>
+            <button className="btn-ghost-fill w-full rounded-xl border border-white/20 px-7 py-3 text-sm font-semibold text-text sm:w-auto">
+              Explore Live Demo
+            </button>
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs uppercase tracking-[0.16em] text-text-subtle">
+            <span>97% candidate filtering precision</span>
+            <span>25x faster lead triage</span>
+            <span>Enterprise ready</span>
+          </div>
+        </div>
+
+        <div className="relative">
+          <article className="glass-card hover-glow relative overflow-hidden rounded-2xl border border-white/15 p-5 transition duration-300 hover:-translate-y-1">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-heading text-base text-text">Pipeline Signal Dashboard</h3>
+              <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-accent">
+                Live
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {[88, 74, 96].map((value, index) => (
+                <div key={index} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="mb-2 flex items-center justify-between text-xs text-text-muted">
+                    <span>{["Docking confidence", "ADMET safety", "Quantum stability"][index]}</span>
+                    <span>{value}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/10">
+                    <div
+                      className="h-2 rounded-full bg-[linear-gradient(90deg,#22d3ee,#7c83ff)]"
+                      style={{ width: `${value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-xs text-text-subtle">Top candidate</p>
+                <p className="mt-1 font-heading text-lg text-text">QDF-127A</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-xs text-text-subtle">Binding score</p>
+                <p className="mt-1 font-heading text-lg text-accent">-11.4</p>
+              </div>
+            </div>
+
+            <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_80%_0%,rgba(124,131,255,0.2),transparent_48%)]" />
+          </article>
         </div>
       </div>
     </section>
