@@ -194,7 +194,7 @@ export default function TargetWorkspace() {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Live Activity</span>
             </div>
             <div className="text-[11px] text-slate-300 italic h-12">
-              "{LIVE_UPDATES[updateIndex]}"
+              &quot;{LIVE_UPDATES[updateIndex]}&quot;
             </div>
           </div>
         </aside>
