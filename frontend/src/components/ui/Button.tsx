@@ -12,33 +12,19 @@ export interface ButtonProps
 }
 
 const BASE_STYLES =
-  "inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]";
 
-const VARIANT_STYLES: Record<ButtonVariant, React.CSSProperties> = {
-  primary: {
-    backgroundColor: "var(--accent)",
-    color: "var(--bg)",
-  },
-  secondary: {
-    backgroundColor: "var(--card)",
-    color: "var(--text)",
-    border: `1px solid var(--border)`,
-  },
-  outline: {
-    backgroundColor: "transparent",
-    color: "var(--text)",
-    border: `1px solid var(--border)`,
-  },
-  ghost: {
-    backgroundColor: "transparent",
-    color: "var(--text)",
-  },
+const VARIANT_STYLES: Record<ButtonVariant, string> = {
+  primary: "btn-primary-glow text-white shadow-lg",
+  secondary: "bg-surface border border-border/50 text-text hover:bg-surface-strong hover:border-border",
+  outline: "bg-transparent border-2 border-primary/20 text-text hover:border-primary/50 hover:bg-primary/5",
+  ghost: "bg-transparent text-text-secondary hover:bg-surface-subtle hover:text-text",
 };
 
 const SIZE_STYLES: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
-  lg: "h-12 px-5 text-base",
+  sm: "h-9 px-4 text-xs tracking-wide uppercase",
+  md: "h-11 px-6 text-sm tracking-wide",
+  lg: "h-14 px-8 text-base tracking-wide",
 };
 
 function joinClasses(...classes: Array<string | undefined | false>) {
@@ -55,7 +41,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     disabled,
     children,
     type = "button",
-    style,
     ...props
   },
   ref,
@@ -69,13 +54,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={isDisabled}
       className={joinClasses(
         BASE_STYLES,
+        VARIANT_STYLES[variant],
         SIZE_STYLES[size],
         className,
       )}
-      style={{
-        ...VARIANT_STYLES[variant],
-        ...style,
-      }}
       aria-busy={isLoading}
       {...props}
     >
@@ -102,7 +84,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
               d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
             />
           </svg>
-          <span>{loadingText ?? children ?? "Loading"}</span>
+          <span className="font-medium">{loadingText ?? children ?? "Processing..."}</span>
         </span>
       ) : (
         children
@@ -110,5 +92,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     </button>
   );
 });
+
 
 Button.displayName = "Button";

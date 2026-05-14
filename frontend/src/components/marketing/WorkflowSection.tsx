@@ -1,68 +1,95 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 const steps = [
   {
-    icon: "GN",
-    title: "Generate",
-    description: "Create a broad set of promising molecule candidates.",
+    title: "Dataset",
+    desc: "Curated oncology libraries",
+    icon: "DS",
+    color: "primary",
   },
   {
-    icon: "FL",
-    title: "Filter",
-    description: "Keep molecules with strong drug-like properties.",
+    title: "Embeddings",
+    desc: "Molecular latent space mapping",
+    icon: "EM",
+    color: "accent",
   },
   {
+    title: "Screening",
+    desc: "Rapid ADMET/QED triage",
+    icon: "SC",
+    color: "primary",
+  },
+  {
+    title: "Docking",
+    desc: "Binding pose generation",
     icon: "DK",
-    title: "Dock",
-    description: "Check how each molecule fits the target protein.",
+    color: "accent",
   },
   {
-    icon: "SM",
-    title: "Simulate",
-    description: "Test interaction stability over virtual time.",
+    title: "GNINA",
+    desc: "CNN-based scoring/refinement",
+    icon: "GN",
+    color: "primary",
   },
   {
-    icon: "QN",
-    title: "Quantum",
-    description: "Run deeper quantum validation for top hits.",
+    title: "Quantum Ranking",
+    desc: "High-fidelity reranking",
+    icon: "QR",
+    color: "accent",
+  },
+  {
+    title: "Validation",
+    desc: "In-silico efficacy proof",
+    icon: "VD",
+    color: "primary",
   },
 ];
 
 export function WorkflowSection() {
   return (
-    <section id="workflow" className="glass-card rounded-3xl px-6 py-12 md:px-10 md:py-14">
-      <h2 className="font-heading text-3xl text-text md:text-4xl">Workflow</h2>
-      <p className="mt-4 max-w-3xl font-body text-base leading-8 text-text-muted">
-        From idea generation to quantum validation, each stage narrows the search
-        to the best therapeutic candidates.
-      </p>
+    <section id="workflow" className="relative py-12">
+      <div className="mb-12 text-center">
+        <h2 className="font-heading text-4xl font-black tracking-tight text-text">Research Workflow</h2>
+        <p className="mx-auto mt-4 max-w-2xl text-lg font-medium text-text-secondary">
+          Our integrated pipeline orchestrates complex computational stages to 
+          isolate the highest-affinity oncology candidates.
+        </p>
+      </div>
 
-      <ol className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-3">
-        {steps.map((step, index) => (
-          <li key={step.title} className="relative flex-1">
-            <article className="group h-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition duration-300 hover:-translate-y-1 hover:border-accent/60 hover:shadow-[0_14px_30px_rgba(34,211,238,0.12)]">
-              <div className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-accent/55 bg-accent/10 font-heading text-[11px] font-semibold tracking-[0.16em] text-accent">
-                {step.icon}
+      <div className="relative">
+        {/* Connection Line */}
+        <div className="absolute left-8 top-1/2 hidden h-1 w-[calc(100%-64px)] -translate-y-1/2 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 lg:block" />
+        
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
+          {steps.map((step, index) => (
+            <motion.div
+              key={step.title}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className="relative"
+            >
+              <div className="ui-card-surface group flex flex-col items-center p-6 text-center transition-all hover:-translate-y-2 hover:border-primary">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-${step.color}/10 font-black text-${step.color} shadow-inner`}>
+                  {step.icon}
+                </div>
+                <h3 className="mt-4 text-sm font-black uppercase tracking-widest text-text">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-[10px] font-bold leading-relaxed text-text-secondary">
+                  {step.desc}
+                </p>
+                <div className="mt-4 text-[10px] font-black text-primary/40">
+                  STAGE {index + 1}
+                </div>
               </div>
-              <h3 className="mt-4 font-heading text-lg text-text">{step.title}</h3>
-              <p className="mt-2 font-body text-sm leading-6 text-text-muted">
-                {step.description}
-              </p>
-
-              <p className="mt-4 text-xs uppercase tracking-[0.14em] text-text-subtle">
-                Stage {index + 1}
-              </p>
-            </article>
-
-            {index < steps.length - 1 && (
-              <>
-                <span className="pointer-events-none absolute left-1/2 top-full mt-1 h-4 w-px -translate-x-1/2 bg-white/20 lg:hidden" />
-                <span className="pointer-events-none absolute right-[-0.9rem] top-1/2 hidden -translate-y-1/2 font-heading text-lg text-text-subtle lg:block">
-                  {">"}
-                </span>
-              </>
-            )}
-          </li>
-        ))}
-      </ol>
+            </motion.div>
+          ))}
+        </div>
+      </div>
     </section>
   );
-}
+}

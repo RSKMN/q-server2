@@ -88,8 +88,8 @@ export function Modal({
   return (
     <div
       className={joinClasses(
-        "fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-200",
-        isVisible ? "opacity-100" : "opacity-0",
+        "fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300",
+        isVisible ? "opacity-100 backdrop-blur-md" : "opacity-0 backdrop-blur-none",
       )}
       onClick={(event) => {
         if (closeOnOutsideClick && event.target === event.currentTarget) {
@@ -99,33 +99,24 @@ export function Modal({
       role="presentation"
     >
       <div
-        className="absolute inset-0 backdrop-blur-sm"
-        style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
+        className="absolute inset-0 bg-background/80"
         aria-hidden="true"
       />
 
       <section
         className={joinClasses(
-          "relative z-10 w-full max-w-lg rounded-2xl border shadow-2xl shadow-black/30 transition-all duration-200",
-          isVisible ? "scale-100 translate-y-0" : "scale-95 translate-y-2",
+          "ui-card-surface relative z-10 w-full max-w-xl shadow-premium transition-all duration-300 overflow-hidden",
+          isVisible ? "scale-100 translate-y-0 opacity-100" : "scale-95 translate-y-4 opacity-0",
         )}
-        style={{
-          backgroundColor: "var(--card)",
-          borderColor: "var(--border)",
-        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
       >
         {title ? (
-          <header
-            className="border-b px-6 py-4"
-            style={{ borderColor: "var(--border)" }}
-          >
+          <header className="border-b border-border/50 px-8 py-6 bg-surface-subtle/30">
             <h2
               id="modal-title"
-              className="text-lg font-semibold"
-              style={{ color: "var(--text)" }}
+              className="text-xl font-bold tracking-tight text-text"
             >
               {title}
             </h2>
@@ -133,22 +124,22 @@ export function Modal({
         ) : null}
 
         {resolvedContent ? (
-          <div className="px-6 py-5" style={{ color: "var(--text)" }}>
+          <div className="px-8 py-8 text-base leading-relaxed text-text">
             {resolvedContent}
           </div>
         ) : null}
 
         {actions ? (
-          <footer
-            className="border-t px-6 py-4"
-            style={{ borderColor: "var(--border)" }}
-          >
-            {actions}
+          <footer className="border-t border-border/50 bg-surface-subtle/30 px-8 py-6">
+            <div className="flex items-center justify-end gap-3">
+              {actions}
+            </div>
           </footer>
         ) : null}
       </section>
     </div>
   );
 }
+
 
 export type { ModalProps };

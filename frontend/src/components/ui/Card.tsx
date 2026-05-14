@@ -31,32 +31,32 @@ export function Card({
   return (
     <section
       className={joinClasses(
-        "rounded-2xl border shadow-xl shadow-black/20 backdrop-blur-sm",
+        "ui-card-surface overflow-hidden transition-all duration-300",
         className,
       )}
-      style={{
-        backgroundColor: "var(--card)",
-        borderColor: "var(--border)",
-      }}
       {...props}
     >
       {header ? (
         <div
-          className={joinClasses("border-b px-6 py-4", headerClassName)}
-          style={{ borderColor: "var(--border)" }}
+          className={joinClasses(
+            "border-b border-border/50 px-8 py-5",
+            headerClassName,
+          )}
         >
           {header}
         </div>
       ) : null}
 
       {resolvedContent ? (
-        <div className={joinClasses("px-6 py-5", contentClassName)}>{resolvedContent}</div>
+        <div className={joinClasses("px-8 py-6", contentClassName)}>{resolvedContent}</div>
       ) : null}
 
       {footer ? (
         <div
-          className={joinClasses("border-t px-6 py-4", footerClassName)}
-          style={{ borderColor: "var(--border)" }}
+          className={joinClasses(
+            "border-t border-border/50 bg-surface-subtle/30 px-8 py-5",
+            footerClassName,
+          )}
         >
           {footer}
         </div>
@@ -68,23 +68,25 @@ export function Card({
 export function CardHeader({ className, ...props }: CardSectionProps) {
   return (
     <div
-      className={joinClasses("border-b px-6 py-4", className)}
-      style={{ borderColor: "var(--border)" }}
+      className={joinClasses("border-b border-border/50 px-8 py-5", className)}
       {...props}
     />
   );
 }
 
 export function CardContent({ className, ...props }: CardSectionProps) {
-  return <div className={joinClasses("px-6 py-5", className)} {...props} />;
+  return <div className={joinClasses("px-8 py-6", className)} {...props} />;
 }
 
 export function CardFooter({ className, ...props }: CardSectionProps) {
   return (
     <div
-      className={joinClasses("border-t px-6 py-4", className)}
-      style={{ borderColor: "var(--border)" }}
+      className={joinClasses(
+        "border-t border-border/50 bg-surface-subtle/30 px-8 py-5",
+        className,
+      )}
       {...props}
     />
   );
 }
+

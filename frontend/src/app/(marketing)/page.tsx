@@ -1,45 +1,57 @@
-import { DemoResultsSection } from "../../components/marketing/DemoResultsSection";
-import { FadeInOnScroll } from "../../components/marketing/FadeInOnScroll";
-import { FeaturesSection } from "../../components/marketing/FeaturesSection";
-import { FooterSection } from "../../components/marketing/FooterSection";
 import { HeroSection } from "../../components/marketing/HeroSection";
-import { PricingSection } from "../../components/marketing/PricingSection";
-import { ProductOverviewSection } from "../../components/marketing/ProductOverviewSection";
+import { MetricsSection } from "../../components/marketing/MetricsSection";
 import { WorkflowSection } from "../../components/marketing/WorkflowSection";
+import { FeaturesSection } from "../../components/marketing/FeaturesSection";
+import { VisualizationSection } from "../../components/marketing/VisualizationSection";
+import { TargetsSection } from "../../components/marketing/TargetsSection";
+import { TechStackSection } from "../../components/marketing/TechStackSection";
+import { FooterSection } from "../../components/marketing/FooterSection";
+import { FadeInOnScroll } from "../../components/marketing/FadeInOnScroll";
 
 export default function MarketingHomePage() {
   return (
-    <main className="aurora-bg relative overflow-hidden bg-background text-text">
-      <div className="bg-grid-noise pointer-events-none absolute inset-0 opacity-80" />
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[-16rem] h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute right-[-10rem] top-[18rem] h-[28rem] w-[28rem] rounded-full bg-accent/14 blur-3xl" />
-        <div className="absolute bottom-[-12rem] left-[-10rem] h-[26rem] w-[26rem] rounded-full bg-primary/14 blur-3xl" />
-      </div>
-
-      <div className="relative mx-auto max-w-7xl space-y-12 px-5 py-12 md:space-y-16 md:px-8 md:py-16 lg:space-y-20 lg:px-12 lg:py-20">
+    <main className="aurora-bg relative overflow-hidden text-text selection:bg-primary selection:text-white">
+      <div className="bg-grid-noise pointer-events-none absolute inset-0 opacity-40" />
+      
+      <div className="relative mx-auto max-w-7xl space-y-24 px-6 py-12 md:space-y-32 md:px-12 md:py-20 lg:space-y-40 lg:px-16 lg:py-24">
+        {/* 1. Hero Section */}
         <FadeInOnScroll delayMs={0}>
           <HeroSection />
         </FadeInOnScroll>
-        <FadeInOnScroll delayMs={60}>
-          <ProductOverviewSection />
-        </FadeInOnScroll>
-        <FadeInOnScroll delayMs={80}>
-          <FeaturesSection />
-        </FadeInOnScroll>
+
+        {/* 2. Animated Metrics Section */}
         <FadeInOnScroll delayMs={100}>
-          <DemoResultsSection />
+          <MetricsSection />
         </FadeInOnScroll>
-        <FadeInOnScroll delayMs={120}>
+
+        {/* 3. Research Workflow Section */}
+        <FadeInOnScroll delayMs={200}>
           <WorkflowSection />
         </FadeInOnScroll>
-        <FadeInOnScroll delayMs={140}>
-          <PricingSection />
+
+        {/* 4. Platform Features Grid */}
+        <FadeInOnScroll delayMs={300}>
+          <FeaturesSection />
         </FadeInOnScroll>
-        <FadeInOnScroll delayMs={160}>
-          <FooterSection />
+
+        {/* 5. Scientific Visualization Section */}
+        <FadeInOnScroll delayMs={400}>
+          <VisualizationSection />
         </FadeInOnScroll>
+
+        {/* 6. Targets Section */}
+        <FadeInOnScroll delayMs={500}>
+          <TargetsSection />
+        </FadeInOnScroll>
+
+        {/* 7. Technology/Research Stack */}
+        <FadeInOnScroll delayMs={600}>
+          <TechStackSection />
+        </FadeInOnScroll>
+
+        {/* 8. Footer (Already included in Layout, but adding here if needed for consistency) */}
       </div>
+      <FooterSection />
     </main>
   );
-}
+}

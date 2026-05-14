@@ -16,32 +16,34 @@ export default function AppShell({ children }: AppShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div
-      className="flex h-dvh w-full flex-col overflow-hidden lg:h-screen"
-      style={{ backgroundColor: "var(--bg)" }}
-    >
-      {/* Mobile nav - horizontal scroll on small screens */}
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+      {/* Mobile nav */}
       <MobileNav />
 
       <div className="flex min-h-0 flex-1">
-        {/* Left sidebar - fixed width, hidden on mobile */}
-        <div className={`hidden flex-shrink-0 sm:block ${isSidebarCollapsed ? "w-16" : "w-52 md:w-56"}`}>
-          <Sidebar collapsed={isSidebarCollapsed} onToggleCollapsed={() => setIsSidebarCollapsed((value) => !value)} />
+        {/* Left sidebar */}
+        <div
+          className={`hidden flex-shrink-0 transition-all duration-300 ease-in-out sm:block ${
+            isSidebarCollapsed ? "w-20" : "w-64"
+          }`}
+        >
+          <Sidebar
+            collapsed={isSidebarCollapsed}
+            onToggleCollapsed={() => setIsSidebarCollapsed((value) => !value)}
+          />
         </div>
 
-        {/* Main workspace - scrollable */}
-        <main
-          className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300"
-          style={{
-            backgroundColor: "var(--muted-bg)",
-          }}
-        >
-          <div className="min-h-full p-4 sm:p-6">{children}</div>
+        {/* Main workspace */}
+        <main className="relative min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background/50">
+          <div className="mx-auto min-h-full max-w-[1600px] p-6 lg:p-10">
+            {children}
+          </div>
         </main>
 
-        {/* Right panel - collapsible */}
+        {/* Right panel */}
         <RightPanel isOpen={isRightPanelOpen} onToggle={toggleRightPanel} />
       </div>
     </div>
   );
 }
+

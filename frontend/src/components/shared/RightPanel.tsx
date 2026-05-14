@@ -45,34 +45,16 @@ export default function RightPanel({ isOpen, onToggle }: RightPanelProps) {
 
   return (
     <aside
-      className={`flex flex-shrink-0 flex-col border-l transition-all duration-300 ease-out ${
+      className={`flex flex-shrink-0 flex-col border-l border-border bg-card transition-all duration-300 ease-out ${
         isOpen ? "w-80 md:w-96" : "w-12"
       }`}
-      style={{
-        borderColor: "var(--border)",
-        backgroundColor: "var(--card)",
-      }}
     >
       {!isOpen ? (
         <div className="flex flex-1 flex-col items-center justify-start pt-4">
           <button
             type="button"
             onClick={onToggle}
-            className="flex items-center justify-center rounded-lg p-2 transition-all duration-200 hover:-translate-x-[1px]"
-            style={{
-              color: "var(--muted-text)",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                "var(--button-hover)";
-              (e.currentTarget as HTMLButtonElement).style.color = "var(--text)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                "transparent";
-              (e.currentTarget as HTMLButtonElement).style.color =
-                "var(--muted-text)";
-            }}
+            className="flex items-center justify-center rounded-xl p-2 text-text-secondary transition-all duration-200 hover:bg-surface-subtle hover:text-text hover:-translate-x-[1px]"
             aria-label="Open molecule viewer"
           >
             <ChevronLeftIcon />
@@ -80,45 +62,25 @@ export default function RightPanel({ isOpen, onToggle }: RightPanelProps) {
         </div>
       ) : (
         <>
-          <div
-            className="flex h-12 flex-shrink-0 items-center justify-between border-b px-3"
-            style={{ borderColor: "var(--border)" }}
-          >
-            <h2
-              className="text-sm font-semibold"
-              style={{ color: "var(--text)" }}
-            >
-              Molecule Viewer
+          <div className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border/50 px-5">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-text-secondary">
+              Research Analytics
             </h2>
             <button
               type="button"
               onClick={onToggle}
-              className="rounded p-1.5 transition-colors"
-              style={{
-                color: "var(--muted-text)",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                  "var(--button-hover)";
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  "var(--text)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                  "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color =
-                  "var(--muted-text)";
-              }}
-              aria-label="Close molecule viewer"
+              className="rounded-xl p-2 text-text-secondary transition-all hover:bg-surface-subtle hover:text-text"
+              aria-label="Close panel"
             >
               <ChevronRightIcon />
             </button>
           </div>
-          <div className="panel-enter flex min-h-0 flex-1 flex-col">
+          <div className="panel-enter flex min-h-0 flex-1 flex-col p-4">
             <MoleculeViewer moleculeId={selectedMoleculeId} />
           </div>
         </>
       )}
     </aside>
+
   );
 }

@@ -11,41 +11,57 @@ const config: Config = {
     extend: {
       colors: {
         background: {
-          DEFAULT: "#070B16",
-          muted: "#0C1326",
-          elevated: "#111A33",
+          DEFAULT: "var(--bg)",
+          muted: "var(--muted-bg)",
+          elevated: "var(--card)",
         },
         surface: {
-          DEFAULT: "#111A33",
-          subtle: "#172447",
-          strong: "#1B2B54",
+          DEFAULT: "var(--card)",
+          subtle: "var(--muted-bg)",
+          strong: "var(--border)",
         },
         primary: {
-          DEFAULT: "#6D7BFF",
-          hover: "#8190FF",
-          active: "#5B6AF2",
-          foreground: "#EEF1FF",
+          DEFAULT: "var(--primary)",
+          hover: "var(--primary-hover)",
+          foreground: "#ffffff",
         },
         accent: {
-          DEFAULT: "#20D8C3",
-          hover: "#36E7D1",
-          active: "#17C7B3",
-          foreground: "#022620",
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+          foreground: "#ffffff",
+        },
+        success: {
+          DEFAULT: "var(--success)",
+          hover: "var(--success)",
+          foreground: "#ffffff",
+        },
+        error: {
+          DEFAULT: "var(--error)",
+          foreground: "#ffffff",
         },
         text: {
-          DEFAULT: "#E6ECFF",
-          muted: "#A8B5DA",
-          subtle: "#7E8CB8",
+          DEFAULT: "var(--text)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--muted-text)",
         },
         border: {
-          DEFAULT: "#25365E",
-          subtle: "#1D2A49",
-          strong: "#2E4372",
+          DEFAULT: "var(--border)",
         },
+
       },
       fontFamily: {
-        heading: ["Space Grotesk", "Sora", "Segoe UI", "sans-serif"],
-        body: ["IBM Plex Sans", "Manrope", "Segoe UI", "sans-serif"],
+        heading: ["var(--font-heading)", "Space Grotesk", "Sora", "Segoe UI", "sans-serif"],
+        body: ["var(--font-body)", "Inter", "Manrope", "Segoe UI", "sans-serif"],
+      },
+      fontSize: {
+        xs: ["0.75rem", { lineHeight: "1rem" }],
+        sm: ["0.875rem", { lineHeight: "1.25rem" }],
+        base: ["1rem", { lineHeight: "1.5rem" }],
+        lg: ["1.125rem", { lineHeight: "1.75rem" }],
+        xl: ["1.25rem", { lineHeight: "1.75rem" }],
+        "2xl": ["1.5rem", { lineHeight: "2rem" }],
+        "3xl": ["1.875rem", { lineHeight: "2.25rem" }],
+        "4xl": ["2.25rem", { lineHeight: "2.5rem" }],
       },
       spacing: {
         "0.5": "0.125rem",
@@ -66,13 +82,37 @@ const config: Config = {
         md: "0.5rem",
         lg: "0.75rem",
         xl: "1rem",
-        "2xl": "1.25rem",
-        "3xl": "1.75rem",
+        "2xl": "1.5rem",
+        "3xl": "2rem",
+      },
+      boxShadow: {
+        soft: "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
+        glass: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+        premium: "0 20px 40px -15px rgba(0, 0, 0, 0.1)",
       },
       borderWidth: {
         DEFAULT: "1px",
         1: "1px",
         2: "2px",
+      },
+      animation: {
+        "fade-in": "fadeIn 0.5s ease-out",
+        "slide-up": "slideUp 0.5s ease-out",
+        "pulse-soft": "pulseSoft 2s infinite",
+      },
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { transform: "translateY(10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        pulseSoft: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
       },
     },
   },
@@ -80,3 +120,4 @@ const config: Config = {
 };
 
 export default config;
+

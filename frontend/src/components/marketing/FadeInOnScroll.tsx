@@ -13,32 +13,36 @@ export function FadeInOnScroll({ children, delayMs = 0 }: FadeInOnScrollProps) {
 
   useEffect(() => {
     const node = wrapperRef.current;
-    if (!node) {
-      return;
-    }
+    if (!node) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.18, rootMargin: "0px 0px -10% 0px" }
-    );
+    // Small delay to ensure it shows up if already in viewport
+    const timer = setTimeout(() => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
+      );
 
-    observer.observe(node);
+      observer.observe(node);
+    }, 100);
 
-    return () => observer.disconnect();
+    return () => clearTimeout(timer);
   }, []);
 
   return (
     <div
       ref={wrapperRef}
-      className={`reveal-on-scroll ${isVisible ? "is-visible" : ""}`}
-      style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
+      className={`transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      }`}
+      style={{ transitionDelay: `${delayMs}ms` }}
     >
       {children}
     </div>
   );
 }
+

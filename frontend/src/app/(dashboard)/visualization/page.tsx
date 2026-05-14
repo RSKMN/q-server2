@@ -337,9 +337,9 @@ export default function VisualizationPage() {
         className="viz-surface overflow-hidden"
         header={
           <SectionHeading
-            eyebrow="Section 1"
-            title="3D Molecule Viewer"
-            description="Inspect real pipeline molecules in 3D and switch samples from generated and filtered results."
+            eyebrow="Research Terminal"
+            title="Structural Operations Center"
+            description="High-fidelity 3D molecular review with integrated docking telemetry and real-time interaction modeling."
           />
         }
         content={
@@ -370,78 +370,16 @@ export default function VisualizationPage() {
                 </div>
               </div>
             ) : selectedMolecule ? (
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                <div className="space-y-4">
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-                        Molecule
-                      </p>
-                      <p className="mt-2 font-mono text-sm font-semibold" style={{ color: "var(--text)" }}>
-                        {selectedMolecule.molecule_id}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-                        Dataset
-                      </p>
-                      <p className="mt-2 text-sm font-semibold" style={{ color: "var(--text)" }}>
-                        {selectedMolecule.dataset}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border px-4 py-3" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-                        Properties
-                      </p>
-                      <p className="mt-2 text-sm font-semibold" style={{ color: "var(--text)" }}>
-                        MW {selectedMolecule.mw.toFixed(1)} | QED {selectedMolecule.qed.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="overflow-hidden rounded-2xl border p-2" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-                    <ThreeDMoleculeViewer
-                      title={selectedMolecule.molecule_id}
-                      subtitle="3D structure preview synchronized with the selected molecule."
-                      moleculeOptions={viewerMoleculeOptions}
-                      selectedMoleculeId={selectedMoleculeId}
-                      onMoleculeSelect={setSelectedMoleculeId}
-                      className="min-h-[560px] border-0 bg-transparent shadow-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-                      Selected sample
-                    </p>
-                    <p className="mt-2 text-sm leading-6" style={{ color: "var(--muted-text)" }}>
-                      The current 3D viewer is linked to {selectedMolecule.molecule_id}. Select a point in the chemical space view to update this molecule and compare its neighborhood.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border p-4" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-                      Quick metadata
-                    </p>
-                    <dl className="mt-3 grid gap-3 text-sm" style={{ color: "var(--muted-text)" }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <dt style={{ color: "var(--muted-text)" }}>SMILES</dt>
-                        <dd className="text-right font-mono text-xs" style={{ color: "var(--text)" }}>
-                          {selectedMolecule.smiles}
-                        </dd>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <dt style={{ color: "var(--muted-text)" }}>LogP</dt>
-                        <dd style={{ color: "var(--text)" }}>{selectedMolecule.logp.toFixed(2)}</dd>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <dt style={{ color: "var(--muted-text)" }}>QED</dt>
-                        <dd style={{ color: "var(--text)" }}>{selectedMolecule.qed.toFixed(2)}</dd>
-                      </div>
-                    </dl>
-                  </div>
+              <div className="space-y-4">
+                <div className="overflow-hidden rounded-2xl border p-0 shadow-premium" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+                  <ThreeDMoleculeViewer
+                    title={selectedMolecule.molecule_id}
+                    subtitle="Interactive 3D structural analysis for oncology drug discovery."
+                    moleculeOptions={viewerMoleculeOptions}
+                    selectedMoleculeId={selectedMoleculeId}
+                    onMoleculeSelect={setSelectedMoleculeId}
+                    className="min-h-[650px] border-0 bg-transparent shadow-none"
+                  />
                 </div>
               </div>
             ) : null}

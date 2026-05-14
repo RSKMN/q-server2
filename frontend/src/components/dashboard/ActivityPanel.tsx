@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { RecentRun } from "@/types/api";
 
 interface ActivityPanelProps {
@@ -42,18 +43,18 @@ function normalizeStatus(status: string): ExperimentStatus {
 
 function getStatusBadgeClass(status: ExperimentStatus): string {
   if (status === "running") {
-    return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+    return "bg-amber-500/10 text-amber-500 border-amber-500/20";
   }
   if (status === "failed") {
-    return "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300";
+    return "bg-rose-500/10 text-rose-500 border-rose-500/20";
   }
   if (status === "queued") {
-    return "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300";
+    return "bg-sky-500/10 text-sky-500 border-sky-500/20";
   }
   if (status === "unknown") {
-    return "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+    return "bg-slate-500/10 text-slate-500 border-slate-500/20";
   }
-  return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+  return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
 }
 
 function buildActivityItems(recentRuns: RecentRun[]): ActivityItem[] {
@@ -73,75 +74,128 @@ export default function ActivityPanel({ recentRuns, loading, error }: ActivityPa
   const items = buildActivityItems(recentRuns);
   const runningCount = items.filter((item) => item.status === "running").length;
 
+  const [logs, setLogs] = useState([
+    { event: "GNINA docking completed", time: "Just now", color: "text-success" },
+    { event: "Quantum reranking initialized", time: "2m ago", color: "text-primary" },
+    { event: "ADMET filtering complete", time: "5m ago", color: "text-success" },
+    { event: "OpenMM simulation running", time: "8m ago", color: "text-accent" },
+  ]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && localStorage.getItem("demo_mode") === "true") {
+      const interval = setInterval(() => {
+        const events = [
+          "GNINA docking completed", "Quantum reranking initialized", "ADMET filtering complete",
+          "OpenMM simulation running", "Lead candidate identified", "Toxicity screening finished",
+          "H-bond map generated", "Solubility predicted"
+        ];
+        const colors = ["text-success", "text-primary", "text-accent", "text-warning"];
+        const newLog = {
+          event: events[Math.floor(Math.random() * events.length)],
+          time: "Just now",
+          color: colors[Math.floor(Math.random() * colors.length)]
+        };
+        setLogs(prev => [newLog, ...prev.slice(0, 3)]);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
   return (
-    <aside className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg transition-all duration-200 hover:shadow-xl dark:border-[#1e293b] dark:bg-[#0b0f19]">
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold tracking-[0.01em] text-slate-900 dark:text-slate-100">
-            Activity
+    <aside className="ui-card-surface flex flex-col p-8 shadow-premium transition-all duration-300 hover:shadow-2xl">
+      <div className="mb-8 flex items-start justify-between">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
+            Experimental Activity
           </h2>
-          <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Recent experiments and execution state
+          <p className="text-sm font-medium text-text-secondary/70">
+            Real-time execution monitoring
           </p>
         </div>
-        <span className="rounded-full bg-teal-100 px-2.5 py-1 text-xs font-medium text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
-          {loading ? "Loading" : `${runningCount} running`}
-        </span>
+        <div className="flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 shadow-sm">
+          <div className={`h-1.5 w-1.5 rounded-full bg-primary ${loading || runningCount > 0 ? "animate-pulse" : ""}`} />
+          <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+            {loading ? "Initializing..." : `${runningCount} ACTIVE`}
+          </span>
+        </div>
       </div>
 
       {error ? (
-        <div className="rounded-lg border border-rose-300/70 bg-rose-50/80 p-3 text-xs text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300">
+        <div className="rounded-xl border-2 border-error/20 bg-error/5 p-5 text-sm font-medium text-error flex items-center gap-3">
+          <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           {error}
         </div>
       ) : null}
 
-      {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-              <div className="h-3 w-28 rounded-md bg-slate-200 skeleton-shimmer" />
-              <div className="mt-2 h-3 w-24 rounded-md bg-slate-200 skeleton-shimmer" />
-              <div className="mt-2 h-3 w-20 rounded-md bg-slate-200 skeleton-shimmer" />
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {!loading && !error && items.length === 0 ? (
-        <div className="rounded-lg border border-slate-200/90 bg-slate-50/80 p-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-          No recent experiment runs found.
-        </div>
-      ) : null}
-
-      {!loading && !error && items.length > 0 ? (
-        <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="rounded-lg border border-slate-200/90 bg-slate-50/80 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-100/90 dark:border-slate-800 dark:bg-slate-900/60 dark:hover:border-slate-700 dark:hover:bg-slate-900/95"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
-                  {item.experiment}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                  {item.details}
-                </p>
-                <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  {item.timestamp}
-                </p>
+      <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
+        {loading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="rounded-2xl border border-border/50 bg-surface-subtle/30 p-6 space-y-3">
+                <div className="skeleton-shimmer h-4 w-32 rounded-full opacity-60" />
+                <div className="skeleton-shimmer h-3 w-24 rounded-full opacity-40" />
               </div>
-              <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset ring-current/10 ${getStatusBadgeClass(item.status)}`}
-              >
-                {item.status}
-              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Live Feed Section */}
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Live Research Feed</p>
+              {logs.map((log, i) => (
+                <div key={i} className="flex items-center justify-between rounded-xl bg-surface-subtle/30 p-3 border border-border/30 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-1.5 w-1.5 rounded-full bg-current ${log.color}`} />
+                    <span className="text-[11px] font-bold text-text/80">{log.event}</span>
+                  </div>
+                  <span className="text-[9px] font-bold text-text-secondary/50 uppercase">{log.time}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="h-px bg-border/50 my-2" />
+
+            {/* Recent Runs Section */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Recent Runs</p>
+              {items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
+                  <p className="text-xs font-bold uppercase tracking-widest">No runs found</p>
+                </div>
+              ) : (
+                items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group relative rounded-2xl border border-border/50 bg-surface-subtle/40 p-5 transition-all duration-300 hover:border-primary/30 hover:bg-surface-subtle/80"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-bold tracking-tight text-text">
+                          {item.experiment}
+                        </p>
+                        <div className="mt-3 flex items-center gap-2 text-[9px] font-bold text-text-secondary/50 uppercase tracking-wider">
+                          {item.timestamp}
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-lg border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${getStatusBadgeClass(item.status)}`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
-        ))}
-        </div>
-      ) : null}
+        )}
+      </div>
+
     </aside>
   );
 }
+

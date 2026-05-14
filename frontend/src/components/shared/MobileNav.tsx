@@ -16,28 +16,19 @@ export default function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="flex gap-1 border-b px-2 py-2 sm:hidden"
-      style={{
-        borderColor: "var(--border)",
-        backgroundColor: "var(--card)",
-      }}
-    >
-      <div className="flex w-full gap-1 overflow-x-auto">
+    <nav className="flex gap-1 border-b border-border/50 bg-card px-4 py-3 sm:hidden">
+      <div className="flex w-full gap-2 overflow-x-auto scrollbar-none">
         {navItems.map(({ href, label }) => {
-          const isActive =
-            href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(href);
+          const isActive = href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
-              className="whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-colors"
-              style={{
-                backgroundColor: isActive ? "var(--muted-bg)" : "transparent",
-                color: isActive ? "var(--accent)" : "var(--muted-text)",
-              }}
+              className={`whitespace-nowrap rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all duration-200 ${
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "bg-surface-subtle text-text-secondary hover:text-text"
+              }`}
             >
               {label}
             </Link>
@@ -47,3 +38,4 @@ export default function MobileNav() {
     </nav>
   );
 }
+

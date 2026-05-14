@@ -26,7 +26,7 @@ const SPINNER_SIZE_STYLES: Record<NonNullable<SpinnerProps["size"]>, string> = {
 
 export function Spinner({
   size = "md",
-  label = "Loading",
+  label = "Processing Analysis",
   className,
   ...props
 }: SpinnerProps) {
@@ -38,16 +38,20 @@ export function Spinner({
       className={joinClasses("inline-flex items-center justify-center", className)}
       {...props}
     >
-      <span
-        className={joinClasses(
-          "animate-spin rounded-full",
-          SPINNER_SIZE_STYLES[size],
-        )}
-        style={{
-          borderColor: "var(--border)",
-          borderTopColor: "var(--accent)",
-        }}
-      />
+      <div className="relative">
+        <div
+          className={joinClasses(
+            "animate-spin rounded-full border-2 border-primary/20 border-t-primary",
+            SPINNER_SIZE_STYLES[size],
+          )}
+        />
+        <div
+          className={joinClasses(
+            "absolute inset-0 animate-pulse rounded-full bg-primary/10",
+            SPINNER_SIZE_STYLES[size],
+          )}
+        />
+      </div>
       <span className="sr-only">{label}</span>
     </div>
   );
@@ -60,82 +64,36 @@ export function DashboardSkeleton({
   return (
     <section
       aria-label="Loading dashboard content"
-      className="space-y-6 animate-pulse"
+      className="space-y-8"
     >
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: cardCount }).map((_, index) => (
           <div
             key={`skeleton-card-${index}`}
-            className="rounded-2xl border p-5 shadow-lg shadow-black/20"
-            style={{
-              backgroundColor: "var(--card)",
-              borderColor: "var(--border)",
-            }}
+            className="ui-card-surface p-8 shadow-premium"
           >
-            <div
-              className="h-4 w-28 rounded"
-              style={{ backgroundColor: "var(--border)" }}
-            />
-            <div
-              className="mt-4 h-8 w-20 rounded"
-              style={{ backgroundColor: "var(--border)" }}
-            />
-            <div
-              className="mt-3 h-3 w-36 rounded"
-              style={{
-                backgroundColor: "var(--border)",
-                opacity: "0.8",
-              }}
-            />
+            <div className="skeleton-shimmer h-4 w-32 rounded-full opacity-60" />
+            <div className="mt-6 skeleton-shimmer h-10 w-24 rounded-xl" />
+            <div className="mt-4 skeleton-shimmer h-3 w-full rounded-full opacity-40" />
           </div>
         ))}
       </div>
 
-      <div
-        className="rounded-2xl border shadow-lg shadow-black/20"
-        style={{
-          backgroundColor: "var(--card)",
-          borderColor: "var(--border)",
-        }}
-      >
-        <div
-          className="border-b px-5 py-4"
-          style={{ borderColor: "var(--border)" }}
-        >
-          <div
-            className="h-4 w-40 rounded"
-            style={{ backgroundColor: "var(--border)" }}
-          />
+      <div className="ui-card-surface shadow-premium overflow-hidden">
+        <div className="border-b border-border/50 bg-surface-subtle/30 px-8 py-5">
+          <div className="skeleton-shimmer h-5 w-48 rounded-full" />
         </div>
-        <div
-          className="divide-y px-5"
-          style={{ borderColor: "var(--border)" }}
-        >
+        <div className="divide-y divide-border/30 px-8">
           {Array.from({ length: rowCount }).map((_, index) => (
             <div
               key={`skeleton-row-${index}`}
-              className="grid grid-cols-12 gap-3 py-4"
+              className="grid grid-cols-12 gap-4 py-6"
             >
-              <div
-                className="col-span-3 h-4 rounded"
-                style={{ backgroundColor: "var(--border)" }}
-              />
-              <div
-                className="col-span-2 h-4 rounded"
-                style={{ backgroundColor: "var(--border)" }}
-              />
-              <div
-                className="col-span-2 h-4 rounded"
-                style={{ backgroundColor: "var(--border)" }}
-              />
-              <div
-                className="col-span-3 h-4 rounded"
-                style={{ backgroundColor: "var(--border)" }}
-              />
-              <div
-                className="col-span-2 h-4 rounded"
-                style={{ backgroundColor: "var(--border)" }}
-              />
+              <div className="col-span-3 skeleton-shimmer h-4 rounded-full opacity-80" />
+              <div className="col-span-2 skeleton-shimmer h-4 rounded-full opacity-60" />
+              <div className="col-span-2 skeleton-shimmer h-4 rounded-full opacity-60" />
+              <div className="col-span-3 skeleton-shimmer h-4 rounded-full opacity-80" />
+              <div className="col-span-2 skeleton-shimmer h-4 rounded-full opacity-40" />
             </div>
           ))}
         </div>
@@ -145,25 +103,22 @@ export function DashboardSkeleton({
 }
 
 export function FullPageLoading({
-  label = "Loading application",
+  label = "Initializing Oncology AI Systems",
 }: FullPageLoadingProps) {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-4"
-      style={{ backgroundColor: "var(--bg)" }}
-    >
-      <div
-        className="flex flex-col items-center gap-4 rounded-2xl border px-6 py-7 shadow-xl shadow-black/25 backdrop-blur-sm"
-        style={{
-          backgroundColor: "var(--card)",
-          borderColor: "var(--border)",
-        }}
-      >
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex flex-col items-center gap-6 rounded-3xl border border-border/50 bg-card/50 p-12 shadow-premium backdrop-blur-xl">
         <Spinner size="lg" label={label} />
-        <p className="text-sm" style={{ color: "var(--muted-text)" }}>
-          {label}
-        </p>
+        <div className="flex flex-col items-center gap-1">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-primary">
+            {label}
+          </p>
+          <p className="text-xs font-medium text-text-secondary">
+            PLEASE WAIT WHILE WE PREPARE THE WORKSPACE
+          </p>
+        </div>
       </div>
     </div>
   );
 }
+

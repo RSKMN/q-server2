@@ -39,22 +39,14 @@ export default function ChemicalSpacePage() {
         setPoints(result);
       } catch (err) {
         if (!alive) return;
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to load embedding map data.";
-        setError(message);
+        setError(err instanceof Error ? err.message : "Failed to load molecular embedding map.");
       } finally {
-        if (alive) {
-          setIsLoading(false);
-        }
+        if (alive) setIsLoading(false);
       }
     }
 
     loadEmbeddingMap();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   const filteredData = useMemo(() => {
@@ -71,10 +63,7 @@ export default function ChemicalSpacePage() {
   const mwBounds = useMemo(() => {
     if (!points.length) return { min: 0, max: 1000 };
     const values = points.map((point) => point.mw);
-    return {
-      min: Math.floor(Math.min(...values)),
-      max: Math.ceil(Math.max(...values)),
-    };
+    return { min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values)) };
   }, [points]);
 
   const logpBounds = useMemo(() => {
@@ -83,10 +72,7 @@ export default function ChemicalSpacePage() {
       .map((point) => point.logp)
       .filter((value): value is number => typeof value === "number");
     if (!values.length) return { min: -2, max: 8 };
-    return {
-      min: Math.floor(Math.min(...values)),
-      max: Math.ceil(Math.max(...values)),
-    };
+    return { min: Math.floor(Math.min(...values)), max: Math.ceil(Math.max(...values)) };
   }, [points]);
 
   useEffect(() => {
@@ -109,11 +95,6 @@ export default function ChemicalSpacePage() {
     setRightPanelOpen(true);
   };
 
-  const handleQedChange = (min: number, max: number) => {
-    setQedMin(min);
-    setQedMax(max);
-  };
-
   const refreshData = async () => {
     try {
       setIsLoading(true);
@@ -121,46 +102,50 @@ export default function ChemicalSpacePage() {
       const result = await getEmbeddingMap(undefined, 5000);
       setPoints(result);
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to refresh embedding map data.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Map refresh failed.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: "var(--text)" }}>
-            Chemical Space
-          </h1>
-          <p className="mt-0.5 text-sm" style={{ color: "var(--muted-text)" }}>
-            UMAP projection of molecular embeddings ({filteredData.length} points)
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 pb-12">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Spatial Intelligence</p>
+          <h1 className="text-3xl font-black tracking-tight text-text">Chemical Space</h1>
+          <p className="text-sm font-medium text-text-secondary/70">
+            Multidimensional analysis of {filteredData.length.toLocaleString()} compounds projected onto a 2D UMAP manifold.
           </p>
         </div>
 
         <button
           type="button"
           onClick={refreshData}
-          className="rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
-          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}
+          disabled={isLoading}
+          className="flex items-center gap-2 rounded-xl border-2 border-border/50 bg-card px-4 py-2 text-sm font-black uppercase tracking-widest text-text transition-all hover:bg-surface-subtle disabled:opacity-50"
         >
-          Refresh
+          <svg className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+          </svg>
+          Re-Sync Map
         </button>
-      </div>
+      </header>
 
       {error ? (
-        <div className="mb-4 rounded-lg border px-4 py-3 text-sm" style={{ borderColor: "var(--error)", backgroundColor: "var(--error-bg)", color: "var(--error-text)" }}>
+        <div className="rounded-2xl border-2 border-error/20 bg-error/5 p-4 text-sm font-bold text-error flex items-center gap-3">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           {error}
         </div>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[260px_1fr]">
-        <div className="lg:min-w-0">
+      <div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[300px_1fr]">
+        <aside className="lg:min-w-0">
           <FiltersPanel
             datasets={availableDatasets}
             selectedDataset={dataset}
@@ -181,36 +166,56 @@ export default function ChemicalSpacePage() {
             }}
             qedMin={qedMin}
             qedMax={qedMax}
-            onQedRangeChange={handleQedChange}
+            onQedRangeChange={(min, max) => {
+              setQedMin(min);
+              setQedMax(max);
+            }}
             colorMode={colorMode}
             onColorModeChange={setColorMode}
           />
-        </div>
+        </aside>
 
-        <div className="min-h-0 flex-1">
-          {isLoading ? (
-            <div className="h-full min-h-[420px] rounded-xl border p-4" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-              <div className="h-6 w-56 rounded-md skeleton-shimmer" style={{ backgroundColor: "var(--border)" }} />
-              <div className="mt-3 h-4 w-72 rounded-md skeleton-shimmer" style={{ backgroundColor: "var(--border)" }} />
-              <div className="mt-6 h-[460px] rounded-xl skeleton-shimmer" style={{ backgroundColor: "var(--border)" }} />
-            </div>
-          ) : (
-            <EmbeddingPlot
-              data={filteredData}
-              colorMode={colorMode}
-              onPointClick={handlePointClick}
-            />
-          )}
+        <main className="flex min-h-0 flex-1 flex-col gap-4">
+          <div className="min-h-[500px] flex-1">
+            {isLoading ? (
+              <div className="ui-card-surface flex h-full items-center justify-center border-0 shadow-none bg-surface-subtle/30">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Recalculating Manifold...</p>
+                </div>
+              </div>
+            ) : (
+              <EmbeddingPlot
+                data={filteredData}
+                colorMode={colorMode}
+                onPointClick={handlePointClick}
+              />
+            )}
+          </div>
 
           {selectedPoint && (
-            <div className="mt-3 rounded-lg border px-4 py-2" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
-              <p className="text-xs font-medium" style={{ color: "var(--text)" }}>
-                Selected {selectedPoint.molecule_id} | Dataset {selectedPoint.dataset} | QED {selectedPoint.qed.toFixed(2)} | MW {selectedPoint.mw.toFixed(1)}
-              </p>
+            <div className="rounded-2xl border-2 border-primary/10 bg-primary/5 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <p className="text-sm font-black text-text">
+                  FOCUS: <span className="font-mono text-primary">{selectedPoint.molecule_id}</span>
+                </p>
+                <div className="h-4 w-px bg-border/50" />
+                <p className="text-xs font-bold text-text-secondary">
+                  Dataset: {selectedPoint.dataset} | QED: {selectedPoint.qed.toFixed(2)} | MW: {selectedPoint.mw.toFixed(1)}
+                </p>
+              </div>
+              <button 
+                onClick={() => setRightPanelOpen(true)}
+                className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+              >
+                Detailed Analysis
+              </button>
             </div>
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
 }
+

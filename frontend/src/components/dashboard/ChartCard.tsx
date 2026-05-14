@@ -9,14 +9,12 @@ interface ChartCardProps {
 
 export default function ChartCard({ title, children }: ChartCardProps) {
   return (
-    <div
-      className="flex flex-col rounded-xl border p-5 shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl"
-      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
-    >
-      <h3 className="mb-6 text-sm font-semibold tracking-[0.01em]" style={{ color: "var(--text)" }}>
+    <div className="ui-card-surface flex flex-col p-8 shadow-premium transition-all duration-300 hover:shadow-2xl">
+      <h3 className="mb-8 text-xs font-bold uppercase tracking-[0.2em] text-text-secondary transition-colors hover:text-primary">
         {title}
       </h3>
-      <div className="h-64 flex-1">{children}</div>
+      <div className="h-[300px] flex-1">{children}</div>
     </div>
   );
 }
+

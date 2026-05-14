@@ -7,6 +7,13 @@ import type { EmbeddingPoint } from "@/types/api";
 
 type ColorMode = "dataset" | "qed";
 
+const CATEGORY_STYLES: Record<string, { color: string; symbol: string; size: number }> = {
+  fda: { color: "#10b981", symbol: "diamond", size: 10 },
+  generated: { color: "#6366f1", symbol: "circle", size: 8 },
+  screening: { color: "#f59e0b", symbol: "square", size: 8 },
+  default: { color: "#94a3b8", symbol: "circle", size: 6 },
+};
+
 interface EmbeddingPlotProps {
   data: EmbeddingPoint[];
   colorMode: ColorMode;
@@ -17,35 +24,15 @@ const Plot = dynamic(() => import("react-plotly.js"), {
   ssr: false,
 }) as React.ComponentType<PlotParams>;
 
-const DATASET_COLORS = ["#2563eb", "#0f766e", "#d97706", "#7c3aed", "#db2777", "#0ea5e9"];
-
-function getDatasetColorMap(datasets: string[]): Map<string, string> {
-  return new Map(
-    datasets.map((dataset, index) => [
-      dataset,
-      DATASET_COLORS[index % DATASET_COLORS.length],
-    ])
-  );
-}
-
 export default function EmbeddingPlot({
   data,
   colorMode,
   onPointClick,
 }: EmbeddingPlotProps) {
-  type PlotCustomData = [string, string, number, number];
+  type PlotCustomData = [string, string, number, number, number];
   const parseCustomData = (value: unknown): PlotCustomData | undefined => {
-    if (!Array.isArray(value) || value.length < 4) return undefined;
-    const [id, dataset, qed, mw] = value;
-    if (
-      typeof id === "string" &&
-      typeof dataset === "string" &&
-      typeof qed === "number" &&
-      typeof mw === "number"
-    ) {
-      return [id, dataset, qed, mw];
-    }
-    return undefined;
+    if (!Array.isArray(value) || value.length < 5) return undefined;
+    return value as PlotCustomData;
   };
 
   const [hoveredPoint, setHoveredPoint] = useState<EmbeddingPoint | null>(null);
@@ -62,6 +49,7 @@ export default function EmbeddingPlot({
       point.dataset,
       point.qed,
       point.mw,
+      point.logp ?? 0,
     ];
 
     if (colorMode === "qed") {
@@ -75,45 +63,46 @@ export default function EmbeddingPlot({
           ids: data.map((point) => point.molecule_id),
           customdata: data.map(toCustomData),
           marker: {
-            size: 8,
-            opacity: 0.82,
+            size: 7,
+            opacity: 0.85,
             color: data.map((point) => point.qed),
-            colorscale: "Viridis",
-            cmin: 0,
-            cmax: 1,
+            colorscale: "Plasma",
+            showscale: true,
             colorbar: {
-              title: {
-                text: "QED",
-              },
-              thickness: 12,
+              title: "QED Score",
+              thickness: 15,
+              len: 0.5,
+              y: 0.5,
+              tickfont: { size: 10, color: "#94a3b8" },
             },
           },
-          hovertemplate:
-            "<b>%{customdata[0]}</b><br>Dataset: %{customdata[1]}<br>QED: %{customdata[2]:.2f}<br>MW: %{customdata[3]:.1f}<extra></extra>",
+          hovertemplate: "%{customdata[0]}<extra></extra>",
         },
       ];
     }
 
     const datasets = Array.from(new Set(data.map((point) => point.dataset))).sort();
-    const colorMap = getDatasetColorMap(datasets);
 
     return datasets.map((dataset) => {
       const datasetPoints = data.filter((point) => point.dataset === dataset);
+      const style = CATEGORY_STYLES[dataset.toLowerCase()] || CATEGORY_STYLES.default;
+      
       return {
         type: "scattergl",
         mode: "markers",
-        name: dataset,
+        name: dataset.toUpperCase(),
         x: datasetPoints.map((point) => point.x),
         y: datasetPoints.map((point) => point.y),
         ids: datasetPoints.map((point) => point.molecule_id),
         customdata: datasetPoints.map(toCustomData),
         marker: {
-          size: 8,
-          opacity: 0.78,
-          color: colorMap.get(dataset) ?? "#3b82f6",
+          size: style.size,
+          symbol: style.symbol,
+          opacity: 0.8,
+          color: style.color,
+          line: { width: 1, color: "rgba(255,255,255,0.2)" }
         },
-        hovertemplate:
-          "<b>%{customdata[0]}</b><br>Dataset: %{customdata[1]}<br>QED: %{customdata[2]:.2f}<br>MW: %{customdata[3]:.1f}<extra></extra>",
+        hovertemplate: "%{customdata[0]}<extra></extra>",
       };
     });
   }, [colorMode, data]);
@@ -121,20 +110,22 @@ export default function EmbeddingPlot({
   const layout = useMemo<Partial<Plotly.Layout>>(
     () => ({
       autosize: true,
-      paper_bgcolor: "#ffffff",
-      plot_bgcolor: "#ffffff",
-      margin: { t: 20, r: 20, b: 40, l: 48 },
+      paper_bgcolor: "transparent",
+      plot_bgcolor: "transparent",
+      margin: { t: 40, r: 10, b: 40, l: 40 },
       xaxis: {
-        title: { text: "UMAP 1" },
+        title: { text: "DIMENSION 1", font: { size: 10, family: "Inter, sans-serif", color: "#64748b" } },
         showgrid: true,
-        gridcolor: "#e2e8f0",
-        zerolinecolor: "#cbd5e1",
+        gridcolor: "rgba(226, 232, 240, 0.4)",
+        zeroline: false,
+        tickfont: { size: 10, color: "#94a3b8" },
       },
       yaxis: {
-        title: { text: "UMAP 2" },
+        title: { text: "DIMENSION 2", font: { size: 10, family: "Inter, sans-serif", color: "#64748b" } },
         showgrid: true,
-        gridcolor: "#e2e8f0",
-        zerolinecolor: "#cbd5e1",
+        gridcolor: "rgba(226, 232, 240, 0.4)",
+        zeroline: false,
+        tickfont: { size: 10, color: "#94a3b8" },
       },
       hovermode: "closest",
       dragmode: "pan",
@@ -142,23 +133,29 @@ export default function EmbeddingPlot({
       legend: {
         orientation: "h",
         yanchor: "bottom",
-        y: 1.01,
+        y: 1.02,
         xanchor: "right",
         x: 1,
+        font: { size: 10, color: "#64748b" },
       },
     }),
     [colorMode]
   );
 
   return (
-    <div ref={containerRef} className="relative h-full min-h-[420px] rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-      <div className="h-full min-h-[460px]">
+    <div ref={containerRef} className="ui-card-surface relative h-full min-h-[500px] overflow-hidden p-0 shadow-premium">
+      <div className="absolute top-4 left-6 z-10">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">UMAP Topography</p>
+        <h3 className="text-xs font-black text-text-secondary">Low-Dimensional Embedding Map</h3>
+      </div>
+
+      <div className="h-full w-full">
         <Plot
           data={traces}
           layout={layout}
           useResizeHandler
           style={{ width: "100%", height: "100%" }}
-          config={{ displaylogo: false, responsive: true }}
+          config={{ displaylogo: false, responsive: true, scrollZoom: true }}
           onHover={(event) => {
             const hovered = event.points?.[0];
             const customData = parseCustomData(hovered?.customdata);
@@ -170,8 +167,8 @@ export default function EmbeddingPlot({
             const clientY = event.event?.clientY ?? 0;
             if (rect) {
               setHoverCoords({
-                x: Math.max(10, Math.min(clientX - rect.left + 14, rect.width - 230)),
-                y: Math.max(10, Math.min(clientY - rect.top + 14, rect.height - 130)),
+                x: Math.max(10, Math.min(clientX - rect.left + 20, rect.width - 240)),
+                y: Math.max(10, Math.min(clientY - rect.top + 20, rect.height - 180)),
               });
             }
           }}
@@ -183,49 +180,64 @@ export default function EmbeddingPlot({
             if (!onPointClick) return;
             const clicked = event.points?.[0];
             if (!clicked) return;
-
             const customData = parseCustomData(clicked.customdata);
             const targetId = customData?.[0] ?? null;
-
             const target = targetId ? pointById.get(targetId) ?? null : null;
-            if (target) {
-              onPointClick(target);
-            }
+            if (target) onPointClick(target);
           }}
         />
       </div>
 
+      {/* Modern Tooltip */}
       <div
-        className={`pointer-events-none absolute z-20 w-52 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-xl backdrop-blur-sm transition-all duration-150 ${
-          hoveredPoint && hoverCoords ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"
+        className={`pointer-events-none absolute z-50 w-56 overflow-hidden rounded-2xl border border-border/50 bg-white shadow-2xl transition-all duration-200 ease-out ${
+          hoveredPoint && hoverCoords ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
         style={{
-          left: hoverCoords?.x ?? 10,
-          top: hoverCoords?.y ?? 10,
+          left: hoverCoords?.x ?? 0,
+          top: hoverCoords?.y ?? 0,
         }}
       >
-        {hoveredPoint ? (
-          <>
-            <p className="text-[11px] font-semibold tracking-wide text-slate-500">MOLECULE PREVIEW</p>
-            <p className="mt-1 font-mono text-xs font-semibold text-slate-900">{hoveredPoint.molecule_id}</p>
-            <p className="mt-0.5 text-xs text-slate-600">{hoveredPoint.dataset}</p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">MW {hoveredPoint.mw.toFixed(1)}</div>
-              <div className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">QED {hoveredPoint.qed.toFixed(2)}</div>
+        {hoveredPoint && (
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary">Preview</span>
+              <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest bg-surface-subtle border border-border/50`}>
+                {hoveredPoint.dataset}
+              </span>
             </div>
-          </>
-        ) : null}
+            <p className="font-mono text-[13px] font-black tracking-tight text-text truncate">
+              {hoveredPoint.molecule_id}
+            </p>
+            
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-xl border border-border/30 bg-surface-subtle/20 p-2 text-center">
+                <p className="text-[8px] font-bold text-text-secondary uppercase">MW</p>
+                <p className="text-[10px] font-black text-text">{hoveredPoint.mw.toFixed(1)}</p>
+              </div>
+              <div className="rounded-xl border border-border/30 bg-surface-subtle/20 p-2 text-center">
+                <p className="text-[8px] font-bold text-text-secondary uppercase">QED</p>
+                <p className="text-[10px] font-black text-text">{hoveredPoint.qed.toFixed(2)}</p>
+              </div>
+            </div>
+
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-[9px] font-bold text-text-secondary">CONFIDENCE</span>
+              <div className="h-1.5 w-20 rounded-full bg-surface-subtle overflow-hidden">
+                <div className="h-full bg-success w-4/5" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+      <div className="absolute bottom-4 left-6 z-10 rounded-full bg-white/80 border border-border/50 px-3 py-1 text-[10px] font-bold text-text-secondary backdrop-blur-md">
         {hoveredPoint ? (
-          <span>
-            Hover: <strong>{hoveredPoint.molecule_id}</strong> | MW {hoveredPoint.mw.toFixed(1)} | QED {hoveredPoint.qed.toFixed(2)}
-          </span>
+          <span>ACTIVE: <span className="text-primary">{hoveredPoint.molecule_id}</span></span>
         ) : (
-          <span>Hover a point to preview MW and QED. Click a point to load it in the molecule viewer.</span>
+          "Scroll to zoom | Drag to pan | Click to select"
         )}
       </div>
     </div>
   );
-}
+}

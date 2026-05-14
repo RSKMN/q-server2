@@ -14,6 +14,7 @@ import SummaryCards from "@/components/dashboard/SummaryCards";
 import ActivityPanel from "@/components/dashboard/ActivityPanel";
 import ChartsSection from "@/components/dashboard/Charts";
 import DatasetInsightsPanel from "@/components/dashboard/DatasetInsightsPanel";
+import RankingsTable from "@/components/dashboard/RankingsTable";
 import { DashboardPageSkeleton } from "@/components/shared/skeletons";
 import { ApiErrorState } from "@/components/shared/states";
 import { toFriendlyErrorMessage } from "@/services/api";
@@ -210,6 +211,59 @@ export default function DashboardPage() {
               error={recentRunsError}
             />
           </div>
+
+          <section className="space-y-6">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
+                Pipeline Results
+              </p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+                Lead Optimization Rankings
+              </h2>
+            </div>
+            <RankingsTable />
+          </section>
+
+          <section className="space-y-6">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
+                Workflow
+              </p>
+              <h2 className="mt-1 text-lg font-semibold tracking-tight" style={{ color: "var(--text)" }}>
+                Research Pipeline Timeline
+              </h2>
+            </div>
+            <div className="ui-card-surface p-10 flex items-center justify-between overflow-x-auto gap-8">
+              {[
+                { label: "Target Prep", status: "completed" },
+                { label: "Ligand Screening", status: "completed" },
+                { label: "Docking Prep", status: "active" },
+                { label: "MD Simulation", status: "pending" },
+                { label: "QM Reranking", status: "pending" },
+                { label: "Validation", status: "pending" },
+              ].map((step, i, arr) => (
+                <div key={i} className="flex items-center gap-8 min-w-fit">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className={`h-12 w-12 rounded-full border-2 flex items-center justify-center text-xs font-black transition-all duration-500 shadow-lg ${
+                      step.status === 'completed' ? 'border-success bg-success/10 text-success' : 
+                      step.status === 'active' ? 'border-primary bg-primary animate-pulse text-white ring-4 ring-primary/20 shadow-primary/40' : 
+                      'border-border/40 bg-surface-subtle/30 text-text-secondary/40'
+                    }`}>
+                      {step.status === 'completed' ? '✓' : i + 1}
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                      step.status === 'active' ? 'text-primary' : 'text-text-secondary/60'
+                    }`}>{step.label}</span>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div className={`h-0.5 w-16 md:w-24 rounded-full ${
+                      step.status === 'completed' ? 'bg-success/40' : 'bg-border/20'
+                    }`} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       )}
     </div>

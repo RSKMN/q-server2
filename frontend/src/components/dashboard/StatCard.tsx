@@ -22,60 +22,57 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <article
-      className="group relative overflow-hidden rounded-2xl border p-5 shadow-[0_14px_35px_rgba(2,8,23,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(2,8,23,0.32)]"
-      style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
+      className="ui-card-surface group relative overflow-hidden p-8 shadow-premium transition-all duration-300 hover:shadow-2xl"
     >
+      {/* Dynamic Glow Effect */}
       <div
-        className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full blur-2xl transition-opacity duration-200 group-hover:opacity-90"
-        style={{ backgroundColor: "var(--accent-glow)" }}
+        className="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-primary/10 blur-3xl transition-opacity duration-300 group-hover:bg-primary/20"
       />
 
-      <div className="relative flex items-start justify-between gap-3">
-        {titleTooltip ? (
-          <Tooltip content={titleTooltip}>
-            <p className="cursor-help text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-              {title}
-            </p>
-          </Tooltip>
-        ) : (
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--muted-text)" }}>
-            {title}
-          </p>
-        )}
-        {icon ? (
-          iconTooltip ? (
-            <Tooltip content={iconTooltip}>
-              <div
-                className="rounded-lg border p-2"
-                style={{
-                  borderColor: "var(--border)",
-                  backgroundColor: "var(--muted-bg)",
-                  color: "var(--accent)",
-                }}
-              >
-                {icon}
-              </div>
+      <div className="relative flex items-start justify-between">
+        <div className="flex flex-col gap-1">
+          {titleTooltip ? (
+            <Tooltip content={titleTooltip}>
+              <p className="cursor-help text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary transition-colors group-hover:text-primary">
+                {title}
+              </p>
             </Tooltip>
           ) : (
-            <div
-              className="rounded-lg border p-2"
-              style={{
-                borderColor: "var(--border)",
-                backgroundColor: "var(--muted-bg)",
-                color: "var(--accent)",
-              }}
-            >
-              {icon}
-            </div>
-          )
-        ) : null}
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-text-secondary transition-colors group-hover:text-primary">
+              {title}
+            </p>
+          )}
+        </div>
+        
+        {icon && (
+          <div className="relative">
+            {iconTooltip ? (
+              <Tooltip content={iconTooltip}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/10 bg-primary/5 text-primary shadow-sm transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/20">
+                  {icon}
+                </div>
+              </Tooltip>
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/10 bg-primary/5 text-primary shadow-sm transition-all duration-300 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg group-hover:shadow-primary/20">
+                {icon}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <p className="relative mt-5 text-4xl font-semibold leading-none tracking-tight" style={{ color: "var(--text)" }}>
-        {value}
-      </p>
+      <div className="mt-8 flex flex-col gap-2">
+        <p className="text-4xl font-black tracking-tight text-text leading-none">
+          {value}
+        </p>
+        <p className="text-sm font-medium text-text-secondary/80 leading-relaxed">
+          {description}
+        </p>
+      </div>
 
-      <p className="relative mt-3 text-xs leading-5" style={{ color: "var(--muted-text)" }}>{description}</p>
+      {/* Decorative progress-like bar at the bottom */}
+      <div className="absolute bottom-0 left-0 h-1 w-0 bg-primary transition-all duration-500 group-hover:w-full" />
     </article>
   );
 }
+

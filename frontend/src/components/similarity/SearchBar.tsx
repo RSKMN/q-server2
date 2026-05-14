@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 
 interface SearchBarProps {
   initialSmiles?: string;
@@ -8,6 +10,7 @@ interface SearchBarProps {
   isLoading?: boolean;
   onSearch: (smiles: string, topK: number) => void;
 }
+
 
 export default function SearchBar({
   initialSmiles = "",
@@ -26,58 +29,50 @@ export default function SearchBar({
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-3 rounded-xl border p-4 shadow-sm md:grid-cols-[1fr_120px_auto] md:items-end"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--card)" }}
+      className="ui-card-surface flex flex-col gap-6 p-8 shadow-premium md:flex-row md:items-end"
     >
-      <div>
-        <label
-          htmlFor="smiles-input"
-          className="mb-1 block text-xs font-medium"
-          style={{ color: "var(--muted-text)" }}
-        >
-          SMILES
-        </label>
-        <input
+      <div className="flex-1">
+        <Input
           id="smiles-input"
+          label="SMILES Sequence"
           value={smiles}
           onChange={(event) => setSmiles(event.target.value)}
           placeholder="e.g. CC(=O)Oc1ccccc1C(=O)O"
-          className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
-          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}
+          className="font-mono"
         />
       </div>
 
-      <div>
-        <label
-          htmlFor="top-k-select"
-          className="mb-1 block text-xs font-medium"
-          style={{ color: "var(--muted-text)" }}
-        >
-          top_k
-        </label>
-        <select
-          id="top-k-select"
-          value={topK}
-          onChange={(event) => setTopK(Number(event.target.value))}
-          className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-1"
-          style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}
-        >
-          {[5, 10, 20, 50].map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
+      <div className="w-full md:w-32">
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="top-k-select"
+            className="text-xs font-bold uppercase tracking-widest text-text-secondary"
+          >
+            TOP K
+          </label>
+          <select
+            id="top-k-select"
+            value={topK}
+            onChange={(event) => setTopK(Number(event.target.value))}
+            className="w-full rounded-xl border-2 border-border/50 bg-surface px-4 py-3 text-sm font-semibold text-text outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all appearance-none"
+          >
+            {[5, 10, 20, 50].map((value) => (
+              <option key={value} value={value}>
+                {value} Results
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <button
+      <Button
         type="submit"
-        disabled={isLoading}
-        className="rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-        style={{ backgroundColor: "var(--accent)", color: "var(--bg)" }}
+        isLoading={isLoading}
+        className="w-full md:w-auto"
+        size="lg"
       >
-        {isLoading ? "Searching..." : "Search"}
-      </button>
+        Execute Search
+      </Button>
     </form>
   );
-}
+}

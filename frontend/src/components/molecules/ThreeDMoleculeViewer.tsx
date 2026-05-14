@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const smilesSdfCache: Record<string, string> = {};
 
@@ -36,14 +37,16 @@ export interface ThreeDMoleculeViewerProps {
 
 type ViewerRepresentation = "stick" | "sphere" | "cartoon";
 
+const TARGETS = ["EGFR", "PARP1", "PIK3CA"];
+
 export default function ThreeDMoleculeViewer({
   source,
   alternateSource,
   moleculeOptions,
   selectedMoleculeId,
   onMoleculeSelect,
-  title = "3D Molecule Viewer",
-  subtitle = "Interactive structure viewer powered by 3Dmol.js.",
+  title = "3D Molecular Operations",
+  subtitle = "Interactive structure review with live simulation telemetry.",
   className,
   initialRepresentation = "stick",
   showSurfaceControl = true,
@@ -55,12 +58,24 @@ export default function ThreeDMoleculeViewer({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [selectedTarget, setSelectedTarget] = useState(TARGETS[0]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [loadingLogIndex, setLoadingLogIndex] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const defaultViewRef = useRef<number[] | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const activeMoleculeId = selectedMoleculeId ?? internalSelectedId;
+
+  const loadingLogs = [
+    "Loading receptor structure...",
+    "Generating ligand conformer...",
+    "Running docking evaluation...",
+    "Calculating quantum reranking...",
+    "Finalizing 3D pose..."
+  ];
 
   const selectedMoleculeOption = useMemo(() => {
     if (!moleculeOptions?.length) {
@@ -80,6 +95,15 @@ export default function ThreeDMoleculeViewer({
     activeSourceSlot === "primary"
       ? primarySource
       : (secondarySource ?? primarySource);
+
+  useEffect(() => {
+    if (isLoading) {
+      const interval = setInterval(() => {
+        setLoadingLogIndex((prev) => (prev + 1) % loadingLogs.length);
+      }, 800);
+      return () => clearInterval(interval);
+    }
+  }, [isLoading, loadingLogs.length]);
 
   useEffect(() => {
     if (!moleculeOptions?.length) return;
@@ -233,15 +257,18 @@ export default function ThreeDMoleculeViewer({
     viewerRef.current.render();
   };
 
-  const showSourceToggle = useMemo(() => {
-    if (!primarySource || !secondarySource) {
-      return false;
+  const toggleFullscreen = () => {
+    if (!rootRef.current) return;
+    if (!document.fullscreenElement) {
+      rootRef.current.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen mode: ${err.message}`);
+      });
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
     }
-    return (
-      primarySource.format !== secondarySource.format ||
-      primarySource.value !== secondarySource.value
-    );
-  }, [primarySource, secondarySource]);
+  };
 
   const handleMoleculeSelect = (moleculeId: string) => {
     setInternalSelectedId(moleculeId);
@@ -250,175 +277,218 @@ export default function ThreeDMoleculeViewer({
 
   return (
     <section
+      ref={rootRef}
       className={joinClasses(
-        "flex h-full min-h-[420px] flex-col overflow-hidden rounded-2xl border shadow-sm transition-all duration-300",
+        "flex h-full min-h-[600px] flex-col overflow-hidden rounded-2xl border shadow-premium transition-all duration-300",
+        isFullscreen ? "fixed inset-0 z-[9999] rounded-none border-0" : "",
         className,
       )}
       style={{ backgroundColor: "var(--card)", borderColor: "var(--border)" }}
     >
-      <header className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-start sm:justify-between" style={{ borderColor: "var(--border)" }}>
-        <div>
-          <h3 className="viz-title text-base tracking-tight" style={{ color: "var(--text)" }}>
-            {title}
-          </h3>
-          <p className="viz-subtitle mt-1 text-sm leading-6" style={{ color: "var(--muted-text)" }}>
-            {subtitle}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {moleculeOptions?.length ? (
-            <label className="text-xs" style={{ color: "var(--muted-text)" }}>
-              <span className="sr-only">Select molecule</span>
-              <select
-                value={selectedMoleculeOption?.id ?? ""}
-                onChange={(event) => handleMoleculeSelect(event.target.value)}
-                className="h-9 rounded-lg border px-3 text-sm focus:outline-none"
-                style={{ backgroundColor: "var(--card)", borderColor: "var(--border)", color: "var(--text)" }}
-              >
-                {moleculeOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {showSourceToggle ? (
-            <div className="flex items-center rounded-lg border p-1" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
-              <button
-                type="button"
-                onClick={() => setActiveSourceSlot("primary")}
-                className={joinClasses(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  activeSourceSlot === "primary"
-                    ? "shadow-sm"
-                    : "",
-                )}
-                style={{
-                  backgroundColor: activeSourceSlot === "primary" ? "var(--accent)" : "transparent",
-                  color: activeSourceSlot === "primary" ? "var(--bg)" : "var(--muted-text)",
-                }}
-              >
-                {primarySource?.label ?? primarySource?.format?.toUpperCase() ?? "PRIMARY"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveSourceSlot("alternate")}
-                className={joinClasses(
-                  "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                  activeSourceSlot === "alternate"
-                    ? "shadow-sm"
-                    : "",
-                )}
-                style={{
-                  backgroundColor: activeSourceSlot === "alternate" ? "var(--accent)" : "transparent",
-                  color: activeSourceSlot === "alternate" ? "var(--bg)" : "var(--muted-text)",
-                }}
-              >
-                {secondarySource?.label ?? secondarySource?.format?.toUpperCase() ?? "ALTERNATE"}
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </header>
-
-      <div className="grid min-h-0 flex-1 gap-5 p-4 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="viz-glow-soft relative min-h-[320px] overflow-hidden rounded-xl border transition-all duration-300" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
-          <div ref={containerRef} className="absolute inset-0" />
-
-          {isLoading ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[2px]" style={{ backgroundColor: "rgba(255,255,255,0.8)" }}>
-              <div className="h-6 w-6 animate-spin rounded-full border-2" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} />
-            </div>
-          ) : error ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center px-6 text-center" style={{ backgroundColor: "rgba(255,255,255,0.9)" }}>
-              <p className="text-sm" style={{ color: "var(--error)" }}>{error}</p>
-            </div>
-          ) : null}
-
-          <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] shadow-sm" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--muted-text)" }}>
-            {isReady ? "Interactive 3Dmol view" : "Rendering"}
+      <header className="flex flex-col gap-4 border-b p-5 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-black uppercase tracking-widest" style={{ color: "var(--text)" }}>
+              {title}
+            </h3>
+            <p className="text-xs font-bold" style={{ color: "var(--muted-text)" }}>
+              Target: <span className="text-primary">{selectedTarget}</span> | Ligand: <span className="text-accent">{activeMoleculeId}</span>
+            </p>
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]" style={{ borderColor: "var(--border)", backgroundColor: "var(--muted-bg)" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--muted-text)" }}>
-            Controls
-          </p>
-
-          <div className="grid grid-cols-3 gap-2">
-            {(["stick", "sphere", "cartoon"] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setRepresentation(mode)}
-                className={joinClasses(
-                  "rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200",
-                  representation === mode
-                    ? ""
-                    : "",
-                )}
-                style={{
-                  borderColor: representation === mode ? "var(--accent)" : "var(--border)",
-                  backgroundColor: representation === mode ? "var(--accent)" : "var(--card)",
-                  color: representation === mode ? "var(--bg)" : "var(--text)",
-                }}
-              >
-                {mode[0].toUpperCase() + mode.slice(1)}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Protein Target</span>
+            <select
+              value={selectedTarget}
+              onChange={(e) => setSelectedTarget(e.target.value)}
+              className="h-9 rounded-lg border px-3 text-xs font-bold focus:outline-none"
+              style={{ backgroundColor: "var(--muted-bg)", borderColor: "var(--border)", color: "var(--text)" }}
+            >
+              {TARGETS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
           </div>
 
-          {showSurfaceControl ? (
-            <label className="flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Surface
-              <input
-                type="checkbox"
-                checked={surfaceEnabled}
-                onChange={(event) => setSurfaceEnabled(event.target.checked)}
-                className="h-4 w-4"
-                style={{ accentColor: "var(--accent)" }}
-              />
-            </label>
-          ) : null}
-
-          <div className="grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => handleRotate("y", -12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Rotate Left
-            </button>
-            <button type="button" onClick={() => handleRotate("y", 12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Rotate Right
-            </button>
-            <button type="button" onClick={() => handleRotate("x", -12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Tilt Down
-            </button>
-            <button type="button" onClick={() => handleRotate("x", 12)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Tilt Up
-            </button>
-            <button type="button" onClick={() => handleZoom(1.15)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Zoom In
-            </button>
-            <button type="button" onClick={() => handleZoom(0.85)} className="rounded-lg border px-3 py-2 text-xs font-medium transition-all duration-200 hover:-translate-y-[1px]" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--text)" }}>
-              Zoom Out
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Candidate</span>
+            <select
+              value={selectedMoleculeOption?.id ?? ""}
+              onChange={(event) => handleMoleculeSelect(event.target.value)}
+              className="h-9 rounded-lg border px-3 text-xs font-bold focus:outline-none"
+              style={{ backgroundColor: "var(--muted-bg)", borderColor: "var(--border)", color: "var(--text)" }}
+            >
+              {moleculeOptions?.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button
-            type="button"
-            onClick={handleReset}
-            className="w-full rounded-lg border px-3 py-2 text-xs font-semibold transition"
-            style={{ borderColor: "var(--accent-border)", backgroundColor: "var(--accent-bg)", color: "var(--accent-text)" }}
+            onClick={toggleFullscreen}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border hover:bg-muted-bg transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--text)" }}
           >
-            Reset View
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
           </button>
-
-          <div className="rounded-lg border p-3 text-xs" style={{ borderColor: "var(--border)", backgroundColor: "var(--card)", color: "var(--muted-text)" }}>
-            Drag to rotate, scroll or pinch to zoom, and use the buttons for quick view changes.
-          </div>
         </div>
+      </header>
+
+      <div className="flex-1 grid gap-0 lg:grid-cols-[1fr_320px] min-h-0">
+        <div className="relative min-h-[400px] overflow-hidden bg-white">
+          <div ref={containerRef} className="absolute inset-0" />
+
+          {/* Interaction Legend */}
+          <div className="absolute top-4 left-4 z-20 space-y-2 rounded-xl border bg-white/80 p-3 shadow-sm backdrop-blur-md" style={{ borderColor: "var(--border)" }}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60 mb-2">Interaction Legend</p>
+            <div className="space-y-1.5">
+              {[
+                { label: "Carbon", color: "bg-gray-700" },
+                { label: "Oxygen", color: "bg-red-500" },
+                { label: "Nitrogen", color: "bg-blue-500" },
+                { label: "Sulfur", color: "bg-yellow-500" },
+                { label: "H-Bonds", color: "bg-success", dashed: true },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`h-2 w-4 rounded-sm ${item.color} ${item.dashed ? "opacity-40" : ""}`} />
+                  <span className="text-[10px] font-bold text-text-secondary">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm"
+              >
+                <div className="relative mb-8 h-20 w-20">
+                  <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+                  <div className="relative flex h-full w-full items-center justify-center rounded-full border-2 border-primary/20">
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-primary animate-pulse">
+                    {loadingLogs[loadingLogIndex]}
+                  </p>
+                  <div className="h-1 w-48 overflow-hidden rounded-full bg-primary/10">
+                    <motion.div
+                      className="h-full bg-primary"
+                      animate={{ x: ["-100%", "100%"] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {error && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center px-10 text-center bg-white/90">
+              <div className="max-w-xs space-y-4">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-error/10 text-error">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold text-error">{error}</p>
+                <button onClick={handleReset} className="text-xs font-black uppercase tracking-widest text-primary underline">Try Reloading</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <aside className="border-l bg-surface-subtle/30 overflow-y-auto" style={{ borderColor: "var(--border)" }}>
+          <div className="p-6 space-y-8">
+            {/* Simulation Telemetry */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Simulation Telemetry</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border bg-white p-3 shadow-sm" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-[9px] font-bold text-text-secondary uppercase">Affinity</p>
+                  <p className="text-lg font-black text-primary">-9.2 <span className="text-[10px] text-text-secondary/50">kcal/mol</span></p>
+                </div>
+                <div className="rounded-xl border bg-white p-3 shadow-sm" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-[9px] font-bold text-text-secondary uppercase">H-Bonds</p>
+                  <p className="text-lg font-black text-success">4 <span className="text-[10px] text-text-secondary/50">active</span></p>
+                </div>
+                <div className="rounded-xl border bg-white p-3 shadow-sm" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-[9px] font-bold text-text-secondary uppercase">Quantum</p>
+                  <p className="text-lg font-black text-accent">0.96 <span className="text-[10px] text-text-secondary/50">QSVM</span></p>
+                </div>
+                <div className="rounded-xl border bg-white p-3 shadow-sm" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-[9px] font-bold text-text-secondary uppercase">Toxicity</p>
+                  <p className="text-lg font-black text-success">Low <span className="text-[10px] text-text-secondary/50">score</span></p>
+                </div>
+              </div>
+            </div>
+
+            {/* Ligand Metadata */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Ligand Metadata</p>
+              <div className="rounded-xl border bg-white p-4 space-y-3 shadow-sm" style={{ borderColor: "var(--border)" }}>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-secondary">MW</span>
+                  <span className="text-[11px] font-black text-text">421.4 g/mol</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-secondary">LogP</span>
+                  <span className="text-[11px] font-black text-text">3.82</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-secondary">QED</span>
+                  <span className="text-[11px] font-black text-text">0.88</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] font-bold text-text-secondary">GNINA Conf.</span>
+                  <span className="text-[11px] font-black text-accent">98.4%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary/60">Visualization Controls</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["stick", "sphere", "cartoon"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setRepresentation(mode)}
+                    className={joinClasses(
+                      "rounded-lg border px-2 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                      representation === mode ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white hover:bg-muted-bg"
+                    )}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => handleZoom(1.15)} className="rounded-lg border bg-white p-2 text-[10px] font-black uppercase tracking-widest hover:bg-muted-bg">Zoom +</button>
+                <button onClick={() => handleZoom(0.85)} className="rounded-lg border bg-white p-2 text-[10px] font-black uppercase tracking-widest hover:bg-muted-bg">Zoom -</button>
+                <button onClick={() => handleRotate("y", 15)} className="rounded-lg border bg-white p-2 text-[10px] font-black uppercase tracking-widest hover:bg-muted-bg">Rotate</button>
+                <button onClick={handleReset} className="rounded-lg border bg-primary/5 text-primary border-primary/20 p-2 text-[10px] font-black uppercase tracking-widest hover:bg-primary/10">Reset</button>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </section>
   );
-}
+}

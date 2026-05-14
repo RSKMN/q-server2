@@ -37,26 +37,23 @@ function FieldShell({
   children,
 }: FieldShellProps) {
   return (
-    <div className={joinClasses("w-full", containerClassName)}>
+    <div className={joinClasses("flex w-full flex-col gap-1.5", containerClassName)}>
       {label ? (
         <label
           htmlFor={id}
-          className={joinClasses("mb-2 block text-sm font-medium", labelClassName)}
-          style={{ color: "var(--text)" }}
+          className={joinClasses(
+            "text-xs font-bold uppercase tracking-widest text-text-secondary transition-colors group-focus-within:text-primary",
+            labelClassName,
+          )}
         >
           {label}
         </label>
       ) : null}
 
-      {children}
+      <div className="group relative">{children}</div>
 
       {hasError ? (
-        <p
-          id={errorId}
-          className="mt-2 text-sm"
-          style={{ color: "var(--error)" }}
-          role="alert"
-        >
+        <p id={errorId} className="text-xs font-medium text-error" role="alert">
           {error}
         </p>
       ) : null}
@@ -73,7 +70,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     containerClassName,
     labelClassName,
     "aria-describedby": ariaDescribedBy,
-    style,
     ...props
   },
   ref,
@@ -99,16 +95,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         id={fieldId}
         ref={ref}
         className={joinClasses(
-          "w-full rounded-lg border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-          hasError ? "focus-visible:ring-offset-transparent" : "",
+          "w-full rounded-xl border-2 bg-surface px-4 py-3 text-sm text-text transition-all duration-200 outline-none",
+          hasError
+            ? "border-error/50 focus:border-error"
+            : "border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/10",
           className,
         )}
-        style={{
-          backgroundColor: "var(--input-bg)",
-          color: "var(--input-text)",
-          borderColor: hasError ? "var(--error)" : "var(--input-border)",
-          ...style,
-        }}
         aria-invalid={hasError}
         aria-describedby={describedBy}
         {...props}
@@ -127,7 +119,6 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
     labelClassName,
     rows = 4,
     "aria-describedby": ariaDescribedBy,
-    style,
     ...props
   },
   ref,
@@ -154,16 +145,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
         ref={ref}
         rows={rows}
         className={joinClasses(
-          "w-full rounded-lg border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-          hasError ? "focus-visible:ring-offset-transparent" : "",
+          "w-full rounded-xl border-2 bg-surface px-4 py-3 text-sm text-text transition-all duration-200 outline-none",
+          hasError
+            ? "border-error/50 focus:border-error"
+            : "border-border/50 focus:border-primary focus:ring-4 focus:ring-primary/10",
           className,
         )}
-        style={{
-          backgroundColor: "var(--input-bg)",
-          color: "var(--input-text)",
-          borderColor: hasError ? "var(--error)" : "var(--input-border)",
-          ...style,
-        }}
         aria-invalid={hasError}
         aria-describedby={describedBy}
         {...props}
@@ -171,6 +158,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
     </FieldShell>
   );
 });
+
 
 Input.displayName = "Input";
 Textarea.displayName = "Textarea";

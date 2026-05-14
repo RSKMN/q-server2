@@ -1,66 +1,82 @@
+"use client";
+
+import { motion } from "framer-motion";
+
 const features = [
   {
-    title: "AI Molecular Generation",
-    text: "Generate high-potential molecular candidates rapidly from target-driven objectives.",
-    icon: "GN",
+    title: "3D Molecular Viewer",
+    text: "High-fidelity visualization of molecular poses and protein-ligand interactions.",
+    icon: "VW",
   },
   {
-    title: "ADMET Prediction",
-    text: "Estimate absorption, safety, and metabolism early to reduce downstream failure.",
-    icon: "AD",
+    title: "Similarity Search",
+    text: "Vector-based embedding search across 1.4B+ compounds in milliseconds.",
+    icon: "SS",
   },
   {
-    title: "Docking & Binding Analysis",
-    text: "Evaluate how molecules fit and interact with target proteins before lab testing.",
-    icon: "DK",
+    title: "Candidate Ranking",
+    text: "Multi-parameter optimization using advanced scoring functions and GNINA.",
+    icon: "CR",
   },
   {
-    title: "Quantum Simulation",
-    text: "Refine top compounds with deeper simulation for higher confidence decisions.",
+    title: "Experiment Tracking",
+    text: "Orchestrate complex discovery pipelines with full reproducibility and logs.",
+    icon: "ET",
+  },
+  {
+    title: "Quantum Scoring",
+    text: "Quantum-assisted reranking to identify high-affinity binding candidates.",
     icon: "QS",
   },
   {
-    title: "Research Copilot",
-    text: "Ask natural-language questions across candidates, experiments, and molecular trends.",
+    title: "AI Research Copilot",
+    text: "Natural language interface for deep interrogation of research data.",
     icon: "CP",
   },
   {
-    title: "Experiment Intelligence",
-    text: "Track outputs, compare runs, and move faster with reproducible scientific workflows.",
-    icon: "EX",
+    title: "Simulation Monitoring",
+    text: "Real-time visibility into molecular dynamics and binding simulations.",
+    icon: "SM",
+  },
+  {
+    title: "Explainable Predictions",
+    text: "Interpret model outputs with attribution maps for ADMET and activity.",
+    icon: "XP",
   },
 ];
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="glass-card rounded-3xl px-6 py-14 md:px-10 md:py-16">
-      <h2 className="font-heading text-3xl tracking-tight text-text md:text-4xl">Features</h2>
-      <p className="mt-5 max-w-3xl font-body text-base leading-8 text-text-muted md:text-lg">
-        Core capabilities engineered for fast, reliable, and explainable scientific discovery.
-      </p>
+    <section id="features" className="py-12">
+      <div className="mb-12">
+        <h2 className="font-heading text-4xl font-black tracking-tight text-text">Platform Core Capabilities</h2>
+        <p className="mt-4 max-w-2xl text-lg font-medium text-text-secondary">
+          An end-to-end stack designed for the rigorous demands of modern computational oncology.
+        </p>
+      </div>
 
-      <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {features.map((feature) => (
-          <article
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {features.map((feature, index) => (
+          <motion.article
             key={feature.title}
-            className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-sm transition duration-300 hover:-translate-y-1.5 hover:border-accent/60 hover:shadow-[0_18px_44px_rgba(34,211,238,0.12)]"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: index * 0.05 }}
+            className="ui-card-surface group p-8 transition-all hover:border-primary/50 hover:shadow-premium"
           >
-            <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.10), rgba(109,123,255,0.08) 45%, transparent 72%)" }} />
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-accent/45 bg-accent/10 font-heading text-xs font-semibold tracking-[0.18em] text-accent transition group-hover:border-accent group-hover:bg-accent/20">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 font-black text-primary transition-all group-hover:scale-110 group-hover:bg-primary group-hover:text-white">
               {feature.icon}
             </div>
-            <h3 className="mt-5 font-heading text-xl text-text">{feature.title}</h3>
-            <p className="mt-3 font-body text-sm leading-7 text-text-muted md:text-base">
+            <h3 className="mt-6 text-lg font-black tracking-tight text-text">
+              {feature.title}
+            </h3>
+            <p className="mt-3 text-sm font-medium leading-relaxed text-text-secondary">
               {feature.text}
             </p>
-
-            <div className="mt-5 inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-text-subtle">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-              Production workflow ready
-            </div>
-          </article>
+          </motion.article>
         ))}
       </div>
     </section>
   );
-}
+}
